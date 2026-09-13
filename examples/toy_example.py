@@ -31,6 +31,36 @@ class TinyNet(nn.Module):
         )
 
 
+def print_component_details(pruner):
+
+    print()
+
+    layers = dict(
+        pruner.layers()
+    )
+
+    for name, scores in pruner.ema_scores.items():
+
+        layer = layers[name]
+
+        print(f"{name}:")
+
+        for i, score in enumerate(scores):
+
+            c_value = layer.c[i].item()
+
+            active = c_value != 0
+
+            status = "KEEP" if active else "PRUNED"
+
+            print(
+                f"  component {i}: "
+                f"score={score.item():.6f} "
+                f"c={c_value:.6f} "
+                f"{status}"
+            )
+
+
 def main():
 
     torch.manual_seed(0)
@@ -111,17 +141,51 @@ def main():
             step
         )
 
-        if (
-            step % 20 == 0
-            or pruned
-        ):
+        if pruned:
 
             print(
-                f"step={step:03d} "
-                f"loss={loss.item():.4f} "
-                f"budget={budget:.2f} "
-                f"active={pruner.active_ranks()}"
+                f"\n{'=' * 60}"
             )
+
+            print(
+                f"Step: {step}"
+            )
+
+            print(
+                f"Loss: {loss.item():.6f}"
+            )
+
+            print(
+                f"Budget: {budget:.4f}"
+            )
+
+            print_component_details(
+                pruner
+            )
+
+            print()
+
+            print(
+                "Active ranks:",
+                pruner.active_ranks()
+            )
+
+            print(
+                f"{'=' * 60}"
+            )
+
+    print("\nFinal component state:")
+
+    print_component_details(
+        pruner
+    )
+
+    print()
+
+    print(
+        "Final active ranks:",
+        pruner.active_ranks()
+    )
 
 
 if __name__ == "__main__":
