@@ -3,7 +3,9 @@ from datetime import datetime
 import sys
 import json
 import torch
+from src.dora.layer import AdaptiveRankLinear
 from src.dora.pruner import DynamicRankPruner
+from src.dora.regularization import dem_loss
 from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
@@ -32,6 +34,8 @@ EMA_DECAY = 0.9
 
 WARMUP_FRACTION = 0.10
 FINAL_FRACTION = 0.10
+
+DEM_COEFFICIENT = 0.01
 
 
 def main():
@@ -219,7 +223,13 @@ def main():
 
             output = model(**batch)
 
-            loss = output.loss
+            task_loss = output.loss
+
+            loss, regularization = dem_loss(
+                task_loss,
+                model,
+                DEM_COEFFICIENT,
+            )
 
             loss.backward()
             optimizer.step()
@@ -261,7 +271,9 @@ def main():
                 print(
                     f"epoch={epoch + 1} "
                     f"step={global_step - 1:4d} "
-                    f"loss={loss.item():.4f} "
+                    f"task_loss={task_loss.item():.4f} "
+                    f"total_loss={loss.item():.4f} "
+                    f"dem={regularization.item():.6f} "
                     f"accuracy={correct / total:.4f} "
                     f"target_avg="
                     f"{pruning_result['target_average_rank']:.3f} "
@@ -318,6 +330,8 @@ def main():
             "model": MODEL_NAME,
             "train_examples": len(tokenized["train"]),
             "epochs": EPOCHS,
+            "dem_enabled": True,
+            "dem_coefficient": DEM_COEFFICIENT,
             "initial_rank": INITIAL_RANK,
             "final_rank": FINAL_RANK,
             "adaptive_layers": pruner.number_of_adaptive_layers(),

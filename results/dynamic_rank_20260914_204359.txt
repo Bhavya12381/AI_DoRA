@@ -1,0 +1,207 @@
+============================================================
+DEVICE
+============================================================
+cpu
+
+============================================================
+MODEL
+============================================================
+Adaptive layers: 12
+Trainable parameters: 739682
+
+============================================================
+TRAINING
+============================================================
+epoch=1 step=   0 task_loss=0.7363 total_loss=0.7365 dem=0.021001 accuracy=0.3125 target_avg=8.000 active=96
+    PRUNED at step 82:
+      distilbert.transformer.layer.2.attention.q_lin component=3 score=0.020575
+      active rank=95
+epoch=1 step= 100 task_loss=0.5379 total_loss=0.5381 dem=0.020135 accuracy=0.6875 target_avg=7.896 active=95
+    PRUNED at step 105:
+      distilbert.transformer.layer.0.attention.q_lin component=2 score=0.029109
+      active rank=94
+    PRUNED at step 119:
+      distilbert.transformer.layer.3.attention.q_lin component=0 score=0.025784
+      active rank=93
+    PRUNED at step 129:
+      distilbert.transformer.layer.5.attention.q_lin component=3 score=0.057510
+      active rank=92
+    PRUNED at step 137:
+      distilbert.transformer.layer.3.attention.q_lin component=5 score=0.060127
+      active rank=91
+    PRUNED at step 145:
+      distilbert.transformer.layer.1.attention.q_lin component=4 score=0.064377
+      active rank=90
+    PRUNED at step 151:
+      distilbert.transformer.layer.4.attention.v_lin component=4 score=0.076813
+      active rank=89
+    PRUNED at step 157:
+      distilbert.transformer.layer.2.attention.q_lin component=2 score=0.126750
+      active rank=88
+    PRUNED at step 162:
+      distilbert.transformer.layer.5.attention.v_lin component=4 score=0.147921
+      active rank=87
+    PRUNED at step 167:
+      distilbert.transformer.layer.0.attention.q_lin component=3 score=0.148401
+      active rank=86
+    PRUNED at step 172:
+      distilbert.transformer.layer.2.attention.v_lin component=6 score=0.159613
+      active rank=85
+    PRUNED at step 176:
+      distilbert.transformer.layer.1.attention.q_lin component=7 score=0.167327
+      active rank=84
+    PRUNED at step 180:
+      distilbert.transformer.layer.2.attention.v_lin component=0 score=0.170144
+      active rank=83
+    PRUNED at step 184:
+      distilbert.transformer.layer.0.attention.q_lin component=4 score=0.183141
+      active rank=82
+    PRUNED at step 188:
+      distilbert.transformer.layer.0.attention.q_lin component=1 score=0.186411
+      active rank=81
+    PRUNED at step 191:
+      distilbert.transformer.layer.4.attention.q_lin component=1 score=0.187625
+      active rank=80
+    PRUNED at step 195:
+      distilbert.transformer.layer.4.attention.v_lin component=2 score=0.196665
+      active rank=79
+    PRUNED at step 198:
+      distilbert.transformer.layer.4.attention.v_lin component=7 score=0.198226
+      active rank=78
+epoch=1 step= 200 task_loss=0.4113 total_loss=0.4115 dem=0.020294 accuracy=0.7553 target_avg=6.474 active=78
+    PRUNED at step 201:
+      distilbert.transformer.layer.5.attention.v_lin component=2 score=0.196897
+      active rank=77
+    PRUNED at step 204:
+      distilbert.transformer.layer.3.attention.q_lin component=3 score=0.193461
+      active rank=76
+    PRUNED at step 207:
+      distilbert.transformer.layer.3.attention.q_lin component=4 score=0.195270
+      active rank=75
+    PRUNED at step 210:
+      distilbert.transformer.layer.2.attention.v_lin component=1 score=0.198401
+      active rank=74
+    PRUNED at step 213:
+      distilbert.transformer.layer.0.attention.v_lin component=2 score=0.199474
+      active rank=73
+    PRUNED at step 215:
+      distilbert.transformer.layer.5.attention.q_lin component=6 score=0.217588
+      active rank=72
+    PRUNED at step 218:
+      distilbert.transformer.layer.3.attention.q_lin component=2 score=0.220498
+      active rank=71
+    PRUNED at step 220:
+      distilbert.transformer.layer.3.attention.v_lin component=3 score=0.236302
+      active rank=70
+    PRUNED at step 223:
+      distilbert.transformer.layer.1.attention.v_lin component=2 score=0.241640
+      active rank=69
+    PRUNED at step 225:
+      distilbert.transformer.layer.3.attention.v_lin component=6 score=0.241639
+      active rank=68
+    PRUNED at step 227:
+      distilbert.transformer.layer.5.attention.v_lin component=7 score=0.249031
+      active rank=67
+    PRUNED at step 230:
+      distilbert.transformer.layer.1.attention.q_lin component=6 score=0.249403
+      active rank=66
+    PRUNED at step 232:
+      distilbert.transformer.layer.1.attention.v_lin component=7 score=0.253421
+      active rank=65
+    PRUNED at step 234:
+      distilbert.transformer.layer.5.attention.q_lin component=5 score=0.254039
+      active rank=64
+    PRUNED at step 236:
+      distilbert.transformer.layer.1.attention.q_lin component=5 score=0.270020
+      active rank=63
+    PRUNED at step 238:
+      distilbert.transformer.layer.2.attention.q_lin component=5 score=0.273872
+      active rank=62
+    PRUNED at step 240:
+      distilbert.transformer.layer.0.attention.v_lin component=5 score=0.279954
+      active rank=61
+    PRUNED at step 242:
+      distilbert.transformer.layer.1.attention.v_lin component=1 score=0.297959
+      active rank=60
+    PRUNED at step 244:
+      distilbert.transformer.layer.4.attention.q_lin component=4 score=0.301141
+      active rank=59
+    PRUNED at step 246:
+      distilbert.transformer.layer.2.attention.v_lin component=3 score=0.300916
+      active rank=58
+    PRUNED at step 248:
+      distilbert.transformer.layer.2.attention.q_lin component=0 score=0.304999
+      active rank=57
+    PRUNED at step 250:
+      distilbert.transformer.layer.5.attention.v_lin component=6 score=0.306483
+      active rank=56
+    PRUNED at step 252:
+      distilbert.transformer.layer.0.attention.v_lin component=3 score=0.316262
+      active rank=55
+    PRUNED at step 253:
+      distilbert.transformer.layer.1.attention.v_lin component=5 score=0.325490
+      active rank=54
+    PRUNED at step 255:
+      distilbert.transformer.layer.4.attention.v_lin component=6 score=0.328598
+      active rank=53
+    PRUNED at step 257:
+      distilbert.transformer.layer.5.attention.q_lin component=0 score=0.330633
+      active rank=52
+    PRUNED at step 259:
+      distilbert.transformer.layer.3.attention.v_lin component=7 score=0.335373
+      active rank=51
+    PRUNED at step 260:
+      distilbert.transformer.layer.4.attention.q_lin component=7 score=0.337531
+      active rank=50
+    PRUNED at step 262:
+      distilbert.transformer.layer.5.attention.q_lin component=4 score=0.344280
+      active rank=49
+    PRUNED at step 264:
+      distilbert.transformer.layer.0.attention.q_lin component=7 score=0.349524
+      active rank=48
+    PRUNED at step 265:
+      distilbert.transformer.layer.5.attention.q_lin component=1 score=0.363439
+      active rank=47
+    PRUNED at step 267:
+      distilbert.transformer.layer.0.attention.v_lin component=4 score=0.368959
+      active rank=46
+    PRUNED at step 268:
+      distilbert.transformer.layer.1.attention.q_lin component=1 score=0.373351
+      active rank=45
+    PRUNED at step 270:
+      distilbert.transformer.layer.4.attention.q_lin component=2 score=0.377224
+      active rank=44
+    PRUNED at step 272:
+      distilbert.transformer.layer.2.attention.q_lin component=7 score=0.380192
+      active rank=43
+    PRUNED at step 273:
+      distilbert.transformer.layer.2.attention.v_lin component=7 score=0.382898
+      active rank=42
+    PRUNED at step 275:
+      distilbert.transformer.layer.4.attention.v_lin component=1 score=0.388175
+      active rank=41
+    PRUNED at step 276:
+      distilbert.transformer.layer.3.attention.v_lin component=5 score=0.395863
+      active rank=40
+    PRUNED at step 278:
+      distilbert.transformer.layer.3.attention.v_lin component=2 score=0.403940
+      active rank=39
+    PRUNED at step 279:
+      distilbert.transformer.layer.5.attention.v_lin component=3 score=0.406218
+      active rank=38
+    PRUNED at step 280:
+      distilbert.transformer.layer.1.attention.v_lin component=6 score=0.426434
+      active rank=37
+    PRUNED at step 282:
+      distilbert.transformer.layer.0.attention.v_lin component=6 score=0.445975
+      active rank=36
+epoch=1 step= 300 task_loss=0.3713 total_loss=0.3715 dem=0.020276 accuracy=0.7776 target_avg=3.000 active=36
+
+Epoch 1 train loss=0.4653 train accuracy=0.7798
+validation accuracy=0.8222
+
+============================================================
+RESULTS SAVED
+============================================================
+JSON: results\dynamic_rank_20260914_204359.json
+Log:  results\dynamic_rank_20260914_204359.txt
