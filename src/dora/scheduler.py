@@ -1,32 +1,77 @@
-def cubic_budget(
-    step,
-    total_steps,
-    initial_budget,
-    final_budget,
-    warmup_fraction,
-    final_fraction,
-):
+class CubicBudgetScheduler:
 
-    ti = total_steps * warmup_fraction
+    def __init__(
+        self,
+        initial_rank,
+        final_rank,
+        total_steps,
+        warmup_fraction=0.1,
+        final_fraction=0.1,
+    ):
 
-    tf = total_steps * final_fraction
+        if initial_rank < final_rank:
+            raise ValueError(
+                "initial_rank must be >= final_rank"
+            )
 
-    if step < ti:
-        return initial_budget
+        if total_steps <= 0:
+            raise ValueError(
+                "total_steps must be positive"
+            )
 
-    if step > total_steps - tf:
-        return final_budget
+        self.initial_rank = float(
+            initial_rank
+        )
 
-    denom = max(
-        total_steps - tf - ti,
-        1e-12,
-    )
+        self.final_rank = float(
+            final_rank
+        )
 
-    progress = (
-        (step - ti)
-        / denom
-    )
+        self.total_steps = total_steps
 
-    return initial_budget - (
-        initial_budget - final_budget
-    ) * progress**3
+        self.warmup_steps = int(
+            total_steps * warmup_fraction
+        )
+
+        self.final_steps = int(
+            total_steps * final_fraction
+        )
+
+        self.pruning_steps = (
+            total_steps
+            - self.warmup_steps
+            - self.final_steps
+        )
+
+    def budget(self, step):
+
+        if step <= self.warmup_steps:
+            return self.initial_rank
+
+        pruning_end = (
+            self.warmup_steps
+            + self.pruning_steps
+        )
+
+        if step >= pruning_end:
+            return self.final_rank
+
+        progress = (
+            step - self.warmup_steps
+        ) / self.pruning_steps
+
+        # Cubic schedule:
+        #
+        # starts slowly,
+        # accelerates in the middle,
+        # then approaches the final budget.
+        reduction = progress ** 3
+
+        return (
+            self.initial_rank
+            - (
+                self.initial_rank
+                - self.final_rank
+            )
+            * reduction
+        )

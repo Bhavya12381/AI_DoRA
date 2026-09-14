@@ -1,44 +1,113 @@
 import torch
 
-from .layer import DoRALinear
+from .layer import AdaptiveRankLinear
 
-
-@torch.no_grad()
 def component_importance(
-    layer: DoRALinear,
+    layer: AdaptiveRankLinear,
     eps: float = 1e-12,
 ):
+    """
+    Calculate the relative importance of every rank component.
 
-    components = layer.component_weights()
+    For component i:
 
-    total = components.sum(dim=0)
+        Delta W_i = c_i * b_i * a_i
 
-    total_norm = torch.linalg.vector_norm(total)
+    Its importance is:
 
-    component_norms = torch.linalg.vector_norm(
-        components.reshape(
-            components.shape[0],
-            -1
-        ),
-        dim=1,
+        score_i =
+            ||Delta W_i||_F
+            -----------------
+            ||Delta W||_F + eps
+
+    Returns:
+        Tensor with shape [rank].
+    """
+
+    components = layer.component_matrices()
+
+    component_norms = torch.linalg.matrix_norm(
+        components,
+        ord="fro",
+        dim=(-2, -1),
     )
 
-    return component_norms / (
+    total_update = components.sum(dim=0)
+
+    total_norm = torch.linalg.matrix_norm(
+        total_update,
+        ord="fro",
+    )
+
+    scores = component_norms / (
         total_norm + eps
     )
 
+    return scores
 
-def update_ema(
-    old,
-    current,
-    beta,
+
+def all_layer_importance(
+    model,
 ):
+    """
+    Calculate importance scores for every
+    AdaptiveRankLinear layer in a model.
 
-    if old is None:
-        return current.clone()
+    Returns:
+        Dictionary:
 
-    return (
-        beta * old
-        +
-        (1.0 - beta) * current
+            {
+                "layer_name": tensor([...]),
+                ...
+            }
+    """
+
+    scores = {}
+
+    for name, module in model.named_modules():
+
+        if isinstance(
+            module,
+            AdaptiveRankLinear,
+        ):
+
+            scores[name] = component_importance(
+                module
+            )
+
+    return scores
+if __name__ == "__main__":
+
+    import torch
+    from torch import nn
+
+    torch.manual_seed(0)
+
+    base = nn.Linear(
+        4,
+        3,
+    )
+
+    layer = AdaptiveRankLinear(
+        base,
+        rank=4,
+    )
+
+    scores = component_importance(
+        layer
+    )
+
+    print("Importance scores:")
+    print(scores)
+
+    print()
+    print("Component matrices:")
+    print(
+        layer.component_matrices().shape
+    )
+
+    print()
+    print("Merged update:")
+    print(
+        layer.merged_update().shape
     )

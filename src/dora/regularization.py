@@ -1,43 +1,102 @@
 import torch
 
-from .layer import DoRALinear
+from .layer import AdaptiveRankLinear
 
 
-def dem_loss(model):
+def dem_regularization(model):
+    """
+    Compute the DEM regularization term.
 
-    total = None
-    count = 0
+    For each adaptive layer:
 
-    for module in model.modules():
+        sum Var(A_i) + sum Var(B_i)
 
-        if not isinstance(module, DoRALinear):
+    The result is normalized by the total number of
+    A/B component variance terms.
+    """
+
+    variance_terms = []
+
+    for _, layer in model.named_modules():
+
+        if not isinstance(
+            layer,
+            AdaptiveRankLinear,
+        ):
             continue
 
-        a_var = module.lora_A.var(
+        # A shape:
+        # [rank, in_features]
+        #
+        # One variance value for each component.
+        a_variance = torch.var(
+            layer.A,
             dim=1,
-            unbiased=False,
+            unbiased=True,
         )
 
-        b_var = module.lora_B.var(
+        # B shape:
+        # [out_features, rank]
+        #
+        # One variance value for each component.
+        b_variance = torch.var(
+            layer.B,
             dim=0,
-            unbiased=False,
+            unbiased=True,
         )
 
-        value = (
-            a_var + b_var
-        ).sum()
-
-        if total is None:
-            total = value
-        else:
-            total = total + value
-
-        count += module.start_rank
-
-    if total is None:
-        return torch.zeros(
-            (),
-            device=next(model.parameters()).device,
+        variance_terms.append(
+            a_variance.sum()
+            + b_variance.sum()
         )
 
-    return total / count
+    # No adaptive layers.
+    if len(variance_terms) == 0:
+        return torch.tensor(
+            0.0,
+            dtype=torch.float32,
+        )
+
+    total_variance = torch.stack(
+        variance_terms
+    ).sum()
+
+    component_count = sum(
+        2 * layer.rank
+        for _, layer in model.named_modules()
+        if isinstance(
+            layer,
+            AdaptiveRankLinear,
+        )
+    )
+
+    return total_variance / float(
+        component_count
+    )
+
+
+def dem_loss(
+    task_loss,
+    model,
+    coefficient,
+):
+    """
+    Combine task loss and DEM regularization.
+
+        total_loss =
+            task_loss
+            +
+            coefficient * DEM
+    """
+
+    regularization = dem_regularization(
+        model
+    )
+
+    total_loss = (
+        task_loss
+        +
+        coefficient * regularization
+    )
+
+    return total_loss, regularization
