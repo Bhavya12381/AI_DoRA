@@ -1,0 +1,238 @@
+======================================================================
+DoRA Dynamic-Rank SST-2 Experiment
+======================================================================
+
+Configuration
+----------------------------------------------------------------------
+Model: distilbert-base-uncased
+Initial rank: 8
+Final rank: 3
+Alpha: 8.0
+Dropout: 0.1
+DEM coefficient: 0.01
+Train subset: 5000
+
+Loading SST-2...
+----------------------------------------------------------------------
+DatasetDict({
+    train: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 67349
+    })
+    validation: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 872
+    })
+    test: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 1821
+    })
+})
+
+Loading model and tokenizer...
+----------------------------------------------------------------------
+
+Target adaptive layers
+----------------------------------------------------------------------
+distilbert.transformer.layer.0.attention.q_lin
+distilbert.transformer.layer.0.attention.v_lin
+distilbert.transformer.layer.1.attention.q_lin
+distilbert.transformer.layer.1.attention.v_lin
+distilbert.transformer.layer.2.attention.q_lin
+distilbert.transformer.layer.2.attention.v_lin
+distilbert.transformer.layer.3.attention.q_lin
+distilbert.transformer.layer.3.attention.v_lin
+distilbert.transformer.layer.4.attention.q_lin
+distilbert.transformer.layer.4.attention.v_lin
+distilbert.transformer.layer.5.attention.q_lin
+distilbert.transformer.layer.5.attention.v_lin
+Number of target layers: 12
+
+Replaced layers
+----------------------------------------------------------------------
+distilbert.transformer.layer.0.attention.q_lin
+distilbert.transformer.layer.0.attention.v_lin
+distilbert.transformer.layer.1.attention.q_lin
+distilbert.transformer.layer.1.attention.v_lin
+distilbert.transformer.layer.2.attention.q_lin
+distilbert.transformer.layer.2.attention.v_lin
+distilbert.transformer.layer.3.attention.q_lin
+distilbert.transformer.layer.3.attention.v_lin
+distilbert.transformer.layer.4.attention.q_lin
+distilbert.transformer.layer.4.attention.v_lin
+distilbert.transformer.layer.5.attention.q_lin
+distilbert.transformer.layer.5.attention.v_lin
+
+Parameter configuration
+----------------------------------------------------------------------
+Trainable parameter count: 739682
+Total parameter count: 67102562
+
+Trainable parameters:
+   distilbert.transformer.layer.0.attention.q_lin.A
+   distilbert.transformer.layer.0.attention.q_lin.B
+   distilbert.transformer.layer.0.attention.q_lin.c
+   distilbert.transformer.layer.0.attention.v_lin.A
+   distilbert.transformer.layer.0.attention.v_lin.B
+   distilbert.transformer.layer.0.attention.v_lin.c
+   distilbert.transformer.layer.1.attention.q_lin.A
+   distilbert.transformer.layer.1.attention.q_lin.B
+   distilbert.transformer.layer.1.attention.q_lin.c
+   distilbert.transformer.layer.1.attention.v_lin.A
+   distilbert.transformer.layer.1.attention.v_lin.B
+   distilbert.transformer.layer.1.attention.v_lin.c
+   distilbert.transformer.layer.2.attention.q_lin.A
+   distilbert.transformer.layer.2.attention.q_lin.B
+   distilbert.transformer.layer.2.attention.q_lin.c
+   distilbert.transformer.layer.2.attention.v_lin.A
+   distilbert.transformer.layer.2.attention.v_lin.B
+   distilbert.transformer.layer.2.attention.v_lin.c
+   distilbert.transformer.layer.3.attention.q_lin.A
+   distilbert.transformer.layer.3.attention.q_lin.B
+   distilbert.transformer.layer.3.attention.q_lin.c
+   distilbert.transformer.layer.3.attention.v_lin.A
+   distilbert.transformer.layer.3.attention.v_lin.B
+   distilbert.transformer.layer.3.attention.v_lin.c
+   distilbert.transformer.layer.4.attention.q_lin.A
+   distilbert.transformer.layer.4.attention.q_lin.B
+   distilbert.transformer.layer.4.attention.q_lin.c
+   distilbert.transformer.layer.4.attention.v_lin.A
+   distilbert.transformer.layer.4.attention.v_lin.B
+   distilbert.transformer.layer.4.attention.v_lin.c
+   distilbert.transformer.layer.5.attention.q_lin.A
+   distilbert.transformer.layer.5.attention.q_lin.B
+   distilbert.transformer.layer.5.attention.q_lin.c
+   distilbert.transformer.layer.5.attention.v_lin.A
+   distilbert.transformer.layer.5.attention.v_lin.B
+   distilbert.transformer.layer.5.attention.v_lin.c
+   pre_classifier.weight
+   pre_classifier.bias
+   classifier.weight
+   classifier.bias
+
+Training steps: 313
+Adaptive layers: 12
+Initial total rank: 96
+Scheduled final total rank: 36
+Prune interval: 20
+Device: cpu
+
+======================================================================
+Training
+======================================================================
+
+Epoch 1/1
+step=0 task_loss=0.689889 total_loss=0.690100 dem=0.021112 target_avg_rank=8.0000 active_rank=96
+
+Pruning event:
+  step: 100
+  target average rank: 7.89612856964074
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+step=100 task_loss=0.372616 total_loss=0.372820 dem=0.020417 target_avg_rank=7.8961 active_rank=95
+
+Pruning event:
+  step: 120
+  target average rank: 7.7770954878285306
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 140
+  target average rank: 7.590524111708592
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 160
+  target average rank: 7.3212372964926695
+  target total rank: 88
+  active rank before: 96
+  active rank after: 88
+  removed: 8
+
+Pruning event:
+  step: 180
+  target average rank: 6.954057897392509
+  target total rank: 83
+  active rank before: 96
+  active rank after: 83
+  removed: 13
+
+Pruning event:
+  step: 200
+  target average rank: 6.473808769619859
+  target total rank: 78
+  active rank before: 96
+  active rank after: 78
+  removed: 18
+step=200 task_loss=0.559552 total_loss=0.559758 dem=0.020569 target_avg_rank=6.4738 active_rank=78
+
+Pruning event:
+  step: 220
+  target average rank: 5.865312768386463
+  target total rank: 70
+  active rank before: 96
+  active rank after: 70
+  removed: 26
+
+Pruning event:
+  step: 240
+  target average rank: 5.113392748904068
+  target total rank: 61
+  active rank before: 96
+  active rank after: 61
+  removed: 35
+
+Pruning event:
+  step: 260
+  target average rank: 4.20287156638442
+  target total rank: 50
+  active rank before: 96
+  active rank after: 50
+  removed: 46
+
+Pruning event:
+  step: 280
+  target average rank: 3.118572076039266
+  target total rank: 37
+  active rank before: 96
+  active rank after: 37
+  removed: 59
+
+Pruning event:
+  step: 300
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+step=300 task_loss=0.538469 total_loss=0.538675 dem=0.020610 target_avg_rank=3.0000 active_rank=36
+
+======================================================================
+Validation
+======================================================================
+
+======================================================================
+Final Results
+======================================================================
+Train accuracy: 0.7884
+Validation accuracy: 0.819954128440367
+Initial total rank: 96
+Scheduled final total rank: 36
+Final active rank: 96
+Scheduled rank reduction: 62.50%
+Actual current rank reduction: 0.00%
+Trainable parameters: 739682
+Total parameters: 67102562
+Pruning events: 11
+
+JSON results: results\sst2_dora_20260916_184215.json
+TXT results: results\sst2_dora_20260916_184215.txt
+Log: results\sst2_dora_20260916_183507.log

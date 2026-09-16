@@ -7,7 +7,7 @@ def dem_regularization(model):
     """
     Compute the DEM regularization term.
 
-    For each adaptive layer:
+    For every adaptive layer:
 
         sum Var(A_i) + sum Var(B_i)
 
@@ -25,20 +25,20 @@ def dem_regularization(model):
         ):
             continue
 
-        # A shape:
+        # A:
         # [rank, in_features]
         #
-        # One variance value for each component.
+        # One variance value per rank-1 component.
         a_variance = torch.var(
             layer.A,
             dim=1,
             unbiased=True,
         )
 
-        # B shape:
+        # B:
         # [out_features, rank]
         #
-        # One variance value for each component.
+        # One variance value per rank-1 component.
         b_variance = torch.var(
             layer.B,
             dim=0,
@@ -70,8 +70,9 @@ def dem_regularization(model):
         )
     )
 
-    return total_variance / float(
-        component_count
+    return (
+        total_variance
+        / float(component_count)
     )
 
 
@@ -99,4 +100,7 @@ def dem_loss(
         coefficient * regularization
     )
 
-    return total_loss, regularization
+    return (
+        total_loss,
+        regularization,
+    )

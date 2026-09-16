@@ -55,8 +55,8 @@ pruner = DynamicRankPruner(
     final_rank=3,
     total_steps=200,
     ema_decay=0.9,
-    warmup_fraction=0.1,
-    final_fraction=0.1,
+    start_fraction=0.15,
+    end_fraction=0.50,
 )
 
 

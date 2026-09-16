@@ -235,8 +235,8 @@ pruner = DynamicRankPruner(
     final_rank=3,
     total_steps=total_steps,
     ema_decay=0.9,
-    warmup_fraction=0.1,
-    final_fraction=0.1,
+    start_fraction=0.15,
+    end_fraction=0.50,
 )
 
 
@@ -427,12 +427,12 @@ for name, scores in pruner.scores().items():
     )
 
     for index, score in enumerate(
-        scores.tolist()
+    scores.tolist()
     ):
 
         status = (
             "ACTIVE"
-            if layer.active_mask[index].item() > 0
+            if layer.c[index].item() != 0.0
             else "PRUNED"
         )
 

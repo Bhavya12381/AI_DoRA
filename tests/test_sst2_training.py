@@ -443,15 +443,18 @@ def main():
         print()
         print("Training steps:", total_steps)
 
+        PRUNE_INTERVAL = 20
+
         pruner = DynamicRankPruner(
-            model=model,
-            initial_rank=INITIAL_RANK,
-            final_rank=FINAL_RANK,
-            total_steps=total_steps,
-            ema_decay=EMA_DECAY,
-            warmup_fraction=WARMUP_FRACTION,
-            final_fraction=FINAL_FRACTION,
-        )
+        model=model,
+        initial_rank=INITIAL_RANK,
+        final_rank=FINAL_RANK,
+        total_steps=total_steps,
+        ema_decay=EMA_DECAY,
+        warmup_fraction=WARMUP_FRACTION,
+        final_fraction=FINAL_FRACTION,
+        prune_interval=PRUNE_INTERVAL,
+)
 
         adaptive_layer_count = (
             pruner.number_of_adaptive_layers()
@@ -481,6 +484,11 @@ def main():
         print(
             "Scheduled final total rank:",
             final_target_total_rank,
+        )
+
+        print(
+            "Prune interval:",
+            PRUNE_INTERVAL,
         )
 
         # ----------------------------------------------------

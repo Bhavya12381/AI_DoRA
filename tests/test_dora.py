@@ -143,8 +143,8 @@ def test_dynamic_rank_pruner():
         final_rank=2,
         total_steps=10,
         ema_decay=0.9,
-        warmup_fraction=0.1,
-        final_fraction=0.1,
+        start_fraction=0.15,
+        end_fraction=0.50,
     )
 
     # The maximum capacity is eight components.
@@ -262,8 +262,8 @@ def test_pruner_allows_recovery():
         final_rank=2,
         total_steps=10,
         ema_decay=0.9,
-        warmup_fraction=0.1,
-        final_fraction=0.1,
+        start_fraction=0.15,
+        end_fraction=0.50,
     )
 
     # Give the components different magnitudes so
@@ -320,3 +320,200 @@ def test_pruner_allows_recovery():
 
     # The maximum capacity has never changed.
     assert pruner.maximum_rank() == 3
+
+def test_pruning_interval():
+    torch.manual_seed(0)
+
+    model = nn.Sequential(
+        DoRALinear(
+            nn.Linear(5, 7),
+            start_rank=4,
+        ),
+        nn.ReLU(),
+        DoRALinear(
+            nn.Linear(7, 3),
+            start_rank=4,
+        ),
+    )
+
+    pruner = DynamicRankPruner(
+        model=model,
+        initial_rank=4,
+        final_rank=2,
+        total_steps=100,
+        ema_decay=0.9,
+        start_fraction=0.15,
+        end_fraction=0.50,
+        prune_interval=20,
+    )
+
+    for module in model.modules():
+        if isinstance(module, DoRALinear):
+            with torch.no_grad():
+                module.c.fill_(1.0)
+
+    # Step 1:
+    # Importance is updated, but the pruning interval
+    # has not been reached.
+    result = pruner.step(1)
+
+    assert result["pruned"] is False
+    assert result["removed_count"] == 0
+
+    # Step 20:
+    # The pruning interval is reached, but the cubic
+    # schedule is still close to the initial rank.
+    #
+    # Therefore, reaching the interval does NOT by itself
+    # guarantee that components are removed.
+    result = pruner.step(20)
+
+    assert result["removed_count"] == 0
+    assert result["active_rank"] == 8
+
+    # Step 60:
+    # The cubic schedule has progressed far enough that
+    # the target rank is below the initial rank.
+    result = pruner.step(40)
+
+    assert result["pruned"] is True
+    assert result["removed_count"] > 0
+    assert result["active_rank"] < 8
+
+    # Step 61:
+    # No pruning should happen because 61 is not a multiple
+    # of the configured pruning interval.
+    result = pruner.step(61)
+
+    assert result["pruned"] is False
+    assert result["removed_count"] == 0
+
+def test_pruned_component_can_become_active_again():
+    torch.manual_seed(0)
+
+    layer = DoRALinear(
+        nn.Linear(5, 7),
+        start_rank=4,
+    )
+
+    with torch.no_grad():
+        layer.c.fill_(1.0)
+
+    assert layer.active_rank() == 4
+
+    layer.prune_components([1])
+
+    assert layer.c[1].item() == 0.0
+    assert layer.active_rank() == 3
+
+    # The gate remains a trainable parameter.
+    assert layer.c.requires_grad
+
+    # Simulate an optimizer update that gives the previously
+    # suppressed component a nonzero gate.
+    with torch.no_grad():
+        layer.c[1] = 0.25
+
+    assert layer.active_rank() == 4
+
+def test_pruner_rank_recovery_after_optimizer_step():
+    torch.manual_seed(0)
+
+    model = nn.Sequential(
+        DoRALinear(
+            nn.Linear(5, 7),
+            start_rank=4,
+        ),
+        nn.ReLU(),
+        DoRALinear(
+            nn.Linear(7, 3),
+            start_rank=4,
+        ),
+    )
+
+    for module in model.modules():
+        if isinstance(module, DoRALinear):
+            with torch.no_grad():
+                module.c.fill_(1.0)
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=1e-2,
+    )
+
+    pruner = DynamicRankPruner(
+        model=model,
+        initial_rank=4,
+        final_rank=2,
+        total_steps=100,
+        ema_decay=0.9,
+        start_fraction=0.15,
+        end_fraction=0.50,
+        prune_interval=20,
+    )
+
+    assert pruner.active_rank() == 8
+
+    # Run enough optimization steps to reach a pruning point.
+    for step in range(101):
+
+        inputs = torch.randn(8, 5)
+        targets = torch.randint(
+            0,
+            3,
+            (8,),
+        )
+
+        optimizer.zero_grad()
+
+        output = model(inputs)
+
+        loss = nn.functional.cross_entropy(
+            output,
+            targets,
+        )
+
+        loss.backward()
+
+        optimizer.step()
+
+        result = pruner.step(step)
+
+        if result["removed_count"] > 0:
+            break
+
+    # A pruning event must have occurred.
+    assert result["removed_count"] > 0
+
+    rank_after_pruning = pruner.active_rank()
+
+    assert rank_after_pruning < 8
+
+    # The next optimizer update may change previously-zero
+    # scalar gates because they remain trainable.
+    inputs = torch.randn(8, 5)
+    targets = torch.randint(
+        0,
+        3,
+        (8,),
+    )
+
+    optimizer.zero_grad()
+
+    output = model(inputs)
+
+    loss = nn.functional.cross_entropy(
+        output,
+        targets,
+    )
+
+    loss.backward()
+
+    optimizer.step()
+
+    rank_after_optimizer = pruner.active_rank()
+
+    # This documents the current behavior of our implementation:
+    # active rank is determined from the current scalar gates,
+    # so previously pruned components can become active again.
+    assert rank_after_optimizer >= rank_after_pruning

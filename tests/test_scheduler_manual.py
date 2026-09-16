@@ -7,8 +7,8 @@ scheduler = CubicBudgetScheduler(
     initial_rank=8,
     final_rank=3,
     total_steps=200,
-    warmup_fraction=0.10,
-    final_fraction=0.10,
+    start_fraction=0.15,
+    end_fraction=0.50,
 )
 
 
