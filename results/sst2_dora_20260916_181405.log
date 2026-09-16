@@ -1,0 +1,1997 @@
+======================================================================
+DoRA Dynamic-Rank SST-2 Experiment
+======================================================================
+
+Configuration
+----------------------------------------------------------------------
+Model: distilbert-base-uncased
+Initial rank: 8
+Final rank: 3
+Alpha: 8.0
+Dropout: 0.1
+DEM coefficient: 0.01
+Train subset: 5000
+
+Loading SST-2...
+----------------------------------------------------------------------
+DatasetDict({
+    train: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 67349
+    })
+    validation: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 872
+    })
+    test: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 1821
+    })
+})
+
+Loading model and tokenizer...
+----------------------------------------------------------------------
+
+Target adaptive layers
+----------------------------------------------------------------------
+distilbert.transformer.layer.0.attention.q_lin
+distilbert.transformer.layer.0.attention.v_lin
+distilbert.transformer.layer.1.attention.q_lin
+distilbert.transformer.layer.1.attention.v_lin
+distilbert.transformer.layer.2.attention.q_lin
+distilbert.transformer.layer.2.attention.v_lin
+distilbert.transformer.layer.3.attention.q_lin
+distilbert.transformer.layer.3.attention.v_lin
+distilbert.transformer.layer.4.attention.q_lin
+distilbert.transformer.layer.4.attention.v_lin
+distilbert.transformer.layer.5.attention.q_lin
+distilbert.transformer.layer.5.attention.v_lin
+Number of target layers: 12
+
+Replaced layers
+----------------------------------------------------------------------
+distilbert.transformer.layer.0.attention.q_lin
+distilbert.transformer.layer.0.attention.v_lin
+distilbert.transformer.layer.1.attention.q_lin
+distilbert.transformer.layer.1.attention.v_lin
+distilbert.transformer.layer.2.attention.q_lin
+distilbert.transformer.layer.2.attention.v_lin
+distilbert.transformer.layer.3.attention.q_lin
+distilbert.transformer.layer.3.attention.v_lin
+distilbert.transformer.layer.4.attention.q_lin
+distilbert.transformer.layer.4.attention.v_lin
+distilbert.transformer.layer.5.attention.q_lin
+distilbert.transformer.layer.5.attention.v_lin
+
+Parameter configuration
+----------------------------------------------------------------------
+Trainable parameter count: 739682
+Total parameter count: 67102562
+
+Trainable parameters:
+   distilbert.transformer.layer.0.attention.q_lin.A
+   distilbert.transformer.layer.0.attention.q_lin.B
+   distilbert.transformer.layer.0.attention.q_lin.c
+   distilbert.transformer.layer.0.attention.v_lin.A
+   distilbert.transformer.layer.0.attention.v_lin.B
+   distilbert.transformer.layer.0.attention.v_lin.c
+   distilbert.transformer.layer.1.attention.q_lin.A
+   distilbert.transformer.layer.1.attention.q_lin.B
+   distilbert.transformer.layer.1.attention.q_lin.c
+   distilbert.transformer.layer.1.attention.v_lin.A
+   distilbert.transformer.layer.1.attention.v_lin.B
+   distilbert.transformer.layer.1.attention.v_lin.c
+   distilbert.transformer.layer.2.attention.q_lin.A
+   distilbert.transformer.layer.2.attention.q_lin.B
+   distilbert.transformer.layer.2.attention.q_lin.c
+   distilbert.transformer.layer.2.attention.v_lin.A
+   distilbert.transformer.layer.2.attention.v_lin.B
+   distilbert.transformer.layer.2.attention.v_lin.c
+   distilbert.transformer.layer.3.attention.q_lin.A
+   distilbert.transformer.layer.3.attention.q_lin.B
+   distilbert.transformer.layer.3.attention.q_lin.c
+   distilbert.transformer.layer.3.attention.v_lin.A
+   distilbert.transformer.layer.3.attention.v_lin.B
+   distilbert.transformer.layer.3.attention.v_lin.c
+   distilbert.transformer.layer.4.attention.q_lin.A
+   distilbert.transformer.layer.4.attention.q_lin.B
+   distilbert.transformer.layer.4.attention.q_lin.c
+   distilbert.transformer.layer.4.attention.v_lin.A
+   distilbert.transformer.layer.4.attention.v_lin.B
+   distilbert.transformer.layer.4.attention.v_lin.c
+   distilbert.transformer.layer.5.attention.q_lin.A
+   distilbert.transformer.layer.5.attention.q_lin.B
+   distilbert.transformer.layer.5.attention.q_lin.c
+   distilbert.transformer.layer.5.attention.v_lin.A
+   distilbert.transformer.layer.5.attention.v_lin.B
+   distilbert.transformer.layer.5.attention.v_lin.c
+   pre_classifier.weight
+   pre_classifier.bias
+   classifier.weight
+   classifier.bias
+
+Training steps: 313
+Adaptive layers: 12
+Initial total rank: 96
+Scheduled final total rank: 36
+Device: cpu
+
+======================================================================
+Training
+======================================================================
+
+Epoch 1/1
+step=0 task_loss=0.689660 total_loss=0.689870 dem=0.020985 target_avg_rank=8.0000 active_rank=96
+
+Pruning event:
+  step: 82
+  target average rank: 7.958057011806111
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 83
+  target average rank: 7.955541083866942
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 84
+  target average rank: 7.952926504486649
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 85
+  target average rank: 7.950211376522133
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 86
+  target average rank: 7.947393802830297
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 87
+  target average rank: 7.944471886268042
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 88
+  target average rank: 7.941443729692269
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 89
+  target average rank: 7.93830743595988
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 90
+  target average rank: 7.935061107927775
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 91
+  target average rank: 7.931702848452858
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 92
+  target average rank: 7.928230760392029
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 93
+  target average rank: 7.924642946602188
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 94
+  target average rank: 7.92093750994024
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 95
+  target average rank: 7.917112553263083
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 96
+  target average rank: 7.913166179427621
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 97
+  target average rank: 7.909096491290754
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 98
+  target average rank: 7.9049015917093834
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 99
+  target average rank: 7.900579583540412
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 100
+  target average rank: 7.89612856964074
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+step=100 task_loss=0.529003 total_loss=0.529204 dem=0.020098 target_avg_rank=7.8961 active_rank=95
+
+Pruning event:
+  step: 101
+  target average rank: 7.8915466528672695
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 102
+  target average rank: 7.886831936076901
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 103
+  target average rank: 7.881982522126538
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 104
+  target average rank: 7.87699651387308
+  target total rank: 95
+  active rank before: 96
+  active rank after: 95
+  removed: 1
+
+Pruning event:
+  step: 105
+  target average rank: 7.871872014173429
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 106
+  target average rank: 7.866607125884488
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 107
+  target average rank: 7.8611999518631555
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 108
+  target average rank: 7.855648594966335
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 109
+  target average rank: 7.849951158050929
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 110
+  target average rank: 7.844105743973835
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 111
+  target average rank: 7.838110455591959
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 112
+  target average rank: 7.8319633957622
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 113
+  target average rank: 7.82566266734146
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 114
+  target average rank: 7.819206373186639
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 115
+  target average rank: 7.8125926161546415
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 116
+  target average rank: 7.805819499102367
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 117
+  target average rank: 7.798885124886717
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 118
+  target average rank: 7.7917875963645935
+  target total rank: 94
+  active rank before: 96
+  active rank after: 94
+  removed: 2
+
+Pruning event:
+  step: 119
+  target average rank: 7.784525016392897
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 120
+  target average rank: 7.7770954878285306
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 121
+  target average rank: 7.769497113528395
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 122
+  target average rank: 7.761727996349391
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 123
+  target average rank: 7.753786239148421
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 124
+  target average rank: 7.745669944782385
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 125
+  target average rank: 7.737377216108187
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 126
+  target average rank: 7.728906155982726
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 127
+  target average rank: 7.720254867262905
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 128
+  target average rank: 7.711421452805625
+  target total rank: 93
+  active rank before: 96
+  active rank after: 93
+  removed: 3
+
+Pruning event:
+  step: 129
+  target average rank: 7.7024040154677875
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 130
+  target average rank: 7.693200658106293
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 131
+  target average rank: 7.683809483578044
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 132
+  target average rank: 7.674228594739943
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 133
+  target average rank: 7.66445609444889
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 134
+  target average rank: 7.654490085561786
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 135
+  target average rank: 7.644328670935534
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 136
+  target average rank: 7.633969953427034
+  target total rank: 92
+  active rank before: 96
+  active rank after: 92
+  removed: 4
+
+Pruning event:
+  step: 137
+  target average rank: 7.623412035893189
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 138
+  target average rank: 7.612653021190899
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 139
+  target average rank: 7.601691012177066
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 140
+  target average rank: 7.590524111708592
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 141
+  target average rank: 7.579150422642377
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 142
+  target average rank: 7.567568047835325
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 143
+  target average rank: 7.555775090144335
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 144
+  target average rank: 7.54376965242631
+  target total rank: 91
+  active rank before: 96
+  active rank after: 91
+  removed: 5
+
+Pruning event:
+  step: 145
+  target average rank: 7.531549837538151
+  target total rank: 90
+  active rank before: 96
+  active rank after: 90
+  removed: 6
+
+Pruning event:
+  step: 146
+  target average rank: 7.519113748336759
+  target total rank: 90
+  active rank before: 96
+  active rank after: 90
+  removed: 6
+
+Pruning event:
+  step: 147
+  target average rank: 7.506459487679036
+  target total rank: 90
+  active rank before: 96
+  active rank after: 90
+  removed: 6
+
+Pruning event:
+  step: 148
+  target average rank: 7.493585158421883
+  target total rank: 90
+  active rank before: 96
+  active rank after: 90
+  removed: 6
+
+Pruning event:
+  step: 149
+  target average rank: 7.480488863422202
+  target total rank: 90
+  active rank before: 96
+  active rank after: 90
+  removed: 6
+
+Pruning event:
+  step: 150
+  target average rank: 7.467168705536894
+  target total rank: 90
+  active rank before: 96
+  active rank after: 90
+  removed: 6
+
+Pruning event:
+  step: 151
+  target average rank: 7.453622787622861
+  target total rank: 89
+  active rank before: 96
+  active rank after: 89
+  removed: 7
+
+Pruning event:
+  step: 152
+  target average rank: 7.439849212537005
+  target total rank: 89
+  active rank before: 96
+  active rank after: 89
+  removed: 7
+
+Pruning event:
+  step: 153
+  target average rank: 7.425846083136225
+  target total rank: 89
+  active rank before: 96
+  active rank after: 89
+  removed: 7
+
+Pruning event:
+  step: 154
+  target average rank: 7.411611502277426
+  target total rank: 89
+  active rank before: 96
+  active rank after: 89
+  removed: 7
+
+Pruning event:
+  step: 155
+  target average rank: 7.397143572817506
+  target total rank: 89
+  active rank before: 96
+  active rank after: 89
+  removed: 7
+
+Pruning event:
+  step: 156
+  target average rank: 7.382440397613369
+  target total rank: 89
+  active rank before: 96
+  active rank after: 89
+  removed: 7
+
+Pruning event:
+  step: 157
+  target average rank: 7.367500079521915
+  target total rank: 88
+  active rank before: 96
+  active rank after: 88
+  removed: 8
+
+Pruning event:
+  step: 158
+  target average rank: 7.352320721400046
+  target total rank: 88
+  active rank before: 96
+  active rank after: 88
+  removed: 8
+
+Pruning event:
+  step: 159
+  target average rank: 7.3369004261046635
+  target total rank: 88
+  active rank before: 96
+  active rank after: 88
+  removed: 8
+
+Pruning event:
+  step: 160
+  target average rank: 7.3212372964926695
+  target total rank: 88
+  active rank before: 96
+  active rank after: 88
+  removed: 8
+
+Pruning event:
+  step: 161
+  target average rank: 7.305329435420965
+  target total rank: 88
+  active rank before: 96
+  active rank after: 88
+  removed: 8
+
+Pruning event:
+  step: 162
+  target average rank: 7.28917494574645
+  target total rank: 87
+  active rank before: 96
+  active rank after: 87
+  removed: 9
+
+Pruning event:
+  step: 163
+  target average rank: 7.272771930326028
+  target total rank: 87
+  active rank before: 96
+  active rank after: 87
+  removed: 9
+
+Pruning event:
+  step: 164
+  target average rank: 7.256118492016601
+  target total rank: 87
+  active rank before: 96
+  active rank after: 87
+  removed: 9
+
+Pruning event:
+  step: 165
+  target average rank: 7.239212733675068
+  target total rank: 87
+  active rank before: 96
+  active rank after: 87
+  removed: 9
+
+Pruning event:
+  step: 166
+  target average rank: 7.222052758158332
+  target total rank: 87
+  active rank before: 96
+  active rank after: 87
+  removed: 9
+
+Pruning event:
+  step: 167
+  target average rank: 7.204636668323294
+  target total rank: 86
+  active rank before: 96
+  active rank after: 86
+  removed: 10
+
+Pruning event:
+  step: 168
+  target average rank: 7.186962567026856
+  target total rank: 86
+  active rank before: 96
+  active rank after: 86
+  removed: 10
+
+Pruning event:
+  step: 169
+  target average rank: 7.16902855712592
+  target total rank: 86
+  active rank before: 96
+  active rank after: 86
+  removed: 10
+
+Pruning event:
+  step: 170
+  target average rank: 7.150832741477386
+  target total rank: 86
+  active rank before: 96
+  active rank after: 86
+  removed: 10
+
+Pruning event:
+  step: 171
+  target average rank: 7.132373222938155
+  target total rank: 86
+  active rank before: 96
+  active rank after: 86
+  removed: 10
+
+Pruning event:
+  step: 172
+  target average rank: 7.11364810436513
+  target total rank: 85
+  active rank before: 96
+  active rank after: 85
+  removed: 11
+
+Pruning event:
+  step: 173
+  target average rank: 7.094655488615213
+  target total rank: 85
+  active rank before: 96
+  active rank after: 85
+  removed: 11
+
+Pruning event:
+  step: 174
+  target average rank: 7.075393478545303
+  target total rank: 85
+  active rank before: 96
+  active rank after: 85
+  removed: 11
+
+Pruning event:
+  step: 175
+  target average rank: 7.055860177012304
+  target total rank: 85
+  active rank before: 96
+  active rank after: 85
+  removed: 11
+
+Pruning event:
+  step: 176
+  target average rank: 7.0360536868731165
+  target total rank: 84
+  active rank before: 96
+  active rank after: 84
+  removed: 12
+
+Pruning event:
+  step: 177
+  target average rank: 7.015972110984642
+  target total rank: 84
+  active rank before: 96
+  active rank after: 84
+  removed: 12
+
+Pruning event:
+  step: 178
+  target average rank: 6.995613552203781
+  target total rank: 84
+  active rank before: 96
+  active rank after: 84
+  removed: 12
+
+Pruning event:
+  step: 179
+  target average rank: 6.974976113387436
+  target total rank: 84
+  active rank before: 96
+  active rank after: 84
+  removed: 12
+
+Pruning event:
+  step: 180
+  target average rank: 6.954057897392509
+  target total rank: 83
+  active rank before: 96
+  active rank after: 83
+  removed: 13
+
+Pruning event:
+  step: 181
+  target average rank: 6.932857007075901
+  target total rank: 83
+  active rank before: 96
+  active rank after: 83
+  removed: 13
+
+Pruning event:
+  step: 182
+  target average rank: 6.911371545294513
+  target total rank: 83
+  active rank before: 96
+  active rank after: 83
+  removed: 13
+
+Pruning event:
+  step: 183
+  target average rank: 6.889599614905246
+  target total rank: 83
+  active rank before: 96
+  active rank after: 83
+  removed: 13
+
+Pruning event:
+  step: 184
+  target average rank: 6.867539318765003
+  target total rank: 82
+  active rank before: 96
+  active rank after: 82
+  removed: 14
+
+Pruning event:
+  step: 185
+  target average rank: 6.845188759730684
+  target total rank: 82
+  active rank before: 96
+  active rank after: 82
+  removed: 14
+
+Pruning event:
+  step: 186
+  target average rank: 6.822546040659192
+  target total rank: 82
+  active rank before: 96
+  active rank after: 82
+  removed: 14
+
+Pruning event:
+  step: 187
+  target average rank: 6.799609264407426
+  target total rank: 82
+  active rank before: 96
+  active rank after: 82
+  removed: 14
+
+Pruning event:
+  step: 188
+  target average rank: 6.77637653383229
+  target total rank: 81
+  active rank before: 96
+  active rank after: 81
+  removed: 15
+
+Pruning event:
+  step: 189
+  target average rank: 6.752845951790685
+  target total rank: 81
+  active rank before: 96
+  active rank after: 81
+  removed: 15
+
+Pruning event:
+  step: 190
+  target average rank: 6.729015621139512
+  target total rank: 81
+  active rank before: 96
+  active rank after: 81
+  removed: 15
+
+Pruning event:
+  step: 191
+  target average rank: 6.704883644735672
+  target total rank: 80
+  active rank before: 96
+  active rank after: 80
+  removed: 16
+
+Pruning event:
+  step: 192
+  target average rank: 6.680448125436066
+  target total rank: 80
+  active rank before: 96
+  active rank after: 80
+  removed: 16
+
+Pruning event:
+  step: 193
+  target average rank: 6.6557071660975975
+  target total rank: 80
+  active rank before: 96
+  active rank after: 80
+  removed: 16
+
+Pruning event:
+  step: 194
+  target average rank: 6.630658869577167
+  target total rank: 80
+  active rank before: 96
+  active rank after: 80
+  removed: 16
+
+Pruning event:
+  step: 195
+  target average rank: 6.605301338731675
+  target total rank: 79
+  active rank before: 96
+  active rank after: 79
+  removed: 17
+
+Pruning event:
+  step: 196
+  target average rank: 6.579632676418024
+  target total rank: 79
+  active rank before: 96
+  active rank after: 79
+  removed: 17
+
+Pruning event:
+  step: 197
+  target average rank: 6.553650985493116
+  target total rank: 79
+  active rank before: 96
+  active rank after: 79
+  removed: 17
+
+Pruning event:
+  step: 198
+  target average rank: 6.527354368813851
+  target total rank: 78
+  active rank before: 96
+  active rank after: 78
+  removed: 18
+
+Pruning event:
+  step: 199
+  target average rank: 6.500740929237132
+  target total rank: 78
+  active rank before: 96
+  active rank after: 78
+  removed: 18
+
+Pruning event:
+  step: 200
+  target average rank: 6.473808769619859
+  target total rank: 78
+  active rank before: 96
+  active rank after: 78
+  removed: 18
+step=200 task_loss=0.737786 total_loss=0.737989 dem=0.020239 target_avg_rank=6.4738 active_rank=78
+
+Pruning event:
+  step: 201
+  target average rank: 6.446555992818935
+  target total rank: 77
+  active rank before: 96
+  active rank after: 77
+  removed: 19
+
+Pruning event:
+  step: 202
+  target average rank: 6.418980701691259
+  target total rank: 77
+  active rank before: 96
+  active rank after: 77
+  removed: 19
+
+Pruning event:
+  step: 203
+  target average rank: 6.391080999093735
+  target total rank: 77
+  active rank before: 96
+  active rank after: 77
+  removed: 19
+
+Pruning event:
+  step: 204
+  target average rank: 6.362854987883263
+  target total rank: 76
+  active rank before: 96
+  active rank after: 76
+  removed: 20
+
+Pruning event:
+  step: 205
+  target average rank: 6.334300770916745
+  target total rank: 76
+  active rank before: 96
+  active rank after: 76
+  removed: 20
+
+Pruning event:
+  step: 206
+  target average rank: 6.305416451051084
+  target total rank: 76
+  active rank before: 96
+  active rank after: 76
+  removed: 20
+
+Pruning event:
+  step: 207
+  target average rank: 6.276200131143178
+  target total rank: 75
+  active rank before: 96
+  active rank after: 75
+  removed: 21
+
+Pruning event:
+  step: 208
+  target average rank: 6.246649914049931
+  target total rank: 75
+  active rank before: 96
+  active rank after: 75
+  removed: 21
+
+Pruning event:
+  step: 209
+  target average rank: 6.216763902628244
+  target total rank: 75
+  active rank before: 96
+  active rank after: 75
+  removed: 21
+
+Pruning event:
+  step: 210
+  target average rank: 6.18654019973502
+  target total rank: 74
+  active rank before: 96
+  active rank after: 74
+  removed: 22
+
+Pruning event:
+  step: 211
+  target average rank: 6.1559769082271565
+  target total rank: 74
+  active rank before: 96
+  active rank after: 74
+  removed: 22
+
+Pruning event:
+  step: 212
+  target average rank: 6.125072130961559
+  target total rank: 74
+  active rank before: 96
+  active rank after: 74
+  removed: 22
+
+Pruning event:
+  step: 213
+  target average rank: 6.0938239707951265
+  target total rank: 73
+  active rank before: 96
+  active rank after: 73
+  removed: 23
+
+Pruning event:
+  step: 214
+  target average rank: 6.062230530584761
+  target total rank: 73
+  active rank before: 96
+  active rank after: 73
+  removed: 23
+
+Pruning event:
+  step: 215
+  target average rank: 6.030289913187364
+  target total rank: 72
+  active rank before: 96
+  active rank after: 72
+  removed: 24
+
+Pruning event:
+  step: 216
+  target average rank: 5.998000221459837
+  target total rank: 72
+  active rank before: 96
+  active rank after: 72
+  removed: 24
+
+Pruning event:
+  step: 217
+  target average rank: 5.965359558259083
+  target total rank: 72
+  active rank before: 96
+  active rank after: 72
+  removed: 24
+
+Pruning event:
+  step: 218
+  target average rank: 5.932366026442001
+  target total rank: 71
+  active rank before: 96
+  active rank after: 71
+  removed: 25
+
+Pruning event:
+  step: 219
+  target average rank: 5.899017728865494
+  target total rank: 71
+  active rank before: 96
+  active rank after: 71
+  removed: 25
+
+Pruning event:
+  step: 220
+  target average rank: 5.865312768386463
+  target total rank: 70
+  active rank before: 96
+  active rank after: 70
+  removed: 26
+
+Pruning event:
+  step: 221
+  target average rank: 5.831249247861809
+  target total rank: 70
+  active rank before: 96
+  active rank after: 70
+  removed: 26
+
+Pruning event:
+  step: 222
+  target average rank: 5.796825270148434
+  target total rank: 70
+  active rank before: 96
+  active rank after: 70
+  removed: 26
+
+Pruning event:
+  step: 223
+  target average rank: 5.76203893810324
+  target total rank: 69
+  active rank before: 96
+  active rank after: 69
+  removed: 27
+
+Pruning event:
+  step: 224
+  target average rank: 5.726888354583128
+  target total rank: 69
+  active rank before: 96
+  active rank after: 69
+  removed: 27
+
+Pruning event:
+  step: 225
+  target average rank: 5.691371622444999
+  target total rank: 68
+  active rank before: 96
+  active rank after: 68
+  removed: 28
+
+Pruning event:
+  step: 226
+  target average rank: 5.655486844545755
+  target total rank: 68
+  active rank before: 96
+  active rank after: 68
+  removed: 28
+
+Pruning event:
+  step: 227
+  target average rank: 5.619232123742297
+  target total rank: 67
+  active rank before: 96
+  active rank after: 67
+  removed: 29
+
+Pruning event:
+  step: 228
+  target average rank: 5.582605562891527
+  target total rank: 67
+  active rank before: 96
+  active rank after: 67
+  removed: 29
+
+Pruning event:
+  step: 229
+  target average rank: 5.545605264850346
+  target total rank: 67
+  active rank before: 96
+  active rank after: 67
+  removed: 29
+
+Pruning event:
+  step: 230
+  target average rank: 5.508229332475656
+  target total rank: 66
+  active rank before: 96
+  active rank after: 66
+  removed: 30
+
+Pruning event:
+  step: 231
+  target average rank: 5.470475868624359
+  target total rank: 66
+  active rank before: 96
+  active rank after: 66
+  removed: 30
+
+Pruning event:
+  step: 232
+  target average rank: 5.432342976153354
+  target total rank: 65
+  active rank before: 96
+  active rank after: 65
+  removed: 31
+
+Pruning event:
+  step: 233
+  target average rank: 5.393828757919545
+  target total rank: 65
+  active rank before: 96
+  active rank after: 65
+  removed: 31
+
+Pruning event:
+  step: 234
+  target average rank: 5.354931316779833
+  target total rank: 64
+  active rank before: 96
+  active rank after: 64
+  removed: 32
+
+Pruning event:
+  step: 235
+  target average rank: 5.315648755591117
+  target total rank: 64
+  active rank before: 96
+  active rank after: 64
+  removed: 32
+
+Pruning event:
+  step: 236
+  target average rank: 5.275979177210302
+  target total rank: 63
+  active rank before: 96
+  active rank after: 63
+  removed: 33
+
+Pruning event:
+  step: 237
+  target average rank: 5.235920684494289
+  target total rank: 63
+  active rank before: 96
+  active rank after: 63
+  removed: 33
+
+Pruning event:
+  step: 238
+  target average rank: 5.195471380299977
+  target total rank: 62
+  active rank before: 96
+  active rank after: 62
+  removed: 34
+
+Pruning event:
+  step: 239
+  target average rank: 5.15462936748427
+  target total rank: 62
+  active rank before: 96
+  active rank after: 62
+  removed: 34
+
+Pruning event:
+  step: 240
+  target average rank: 5.113392748904068
+  target total rank: 61
+  active rank before: 96
+  active rank after: 61
+  removed: 35
+
+Pruning event:
+  step: 241
+  target average rank: 5.071759627416272
+  target total rank: 61
+  active rank before: 96
+  active rank after: 61
+  removed: 35
+
+Pruning event:
+  step: 242
+  target average rank: 5.029728105877785
+  target total rank: 60
+  active rank before: 96
+  active rank after: 60
+  removed: 36
+
+Pruning event:
+  step: 243
+  target average rank: 4.987296287145508
+  target total rank: 60
+  active rank before: 96
+  active rank after: 60
+  removed: 36
+
+Pruning event:
+  step: 244
+  target average rank: 4.944462274076342
+  target total rank: 59
+  active rank before: 96
+  active rank after: 59
+  removed: 37
+
+Pruning event:
+  step: 245
+  target average rank: 4.90122416952719
+  target total rank: 59
+  active rank before: 96
+  active rank after: 59
+  removed: 37
+
+Pruning event:
+  step: 246
+  target average rank: 4.85758007635495
+  target total rank: 58
+  active rank before: 96
+  active rank after: 58
+  removed: 38
+
+Pruning event:
+  step: 247
+  target average rank: 4.813528097416528
+  target total rank: 58
+  active rank before: 96
+  active rank after: 58
+  removed: 38
+
+Pruning event:
+  step: 248
+  target average rank: 4.769066335568821
+  target total rank: 57
+  active rank before: 96
+  active rank after: 57
+  removed: 39
+
+Pruning event:
+  step: 249
+  target average rank: 4.724192893668734
+  target total rank: 57
+  active rank before: 96
+  active rank after: 57
+  removed: 39
+
+Pruning event:
+  step: 250
+  target average rank: 4.678905874573166
+  target total rank: 56
+  active rank before: 96
+  active rank after: 56
+  removed: 40
+
+Pruning event:
+  step: 251
+  target average rank: 4.633203381139021
+  target total rank: 56
+  active rank before: 96
+  active rank after: 56
+  removed: 40
+
+Pruning event:
+  step: 252
+  target average rank: 4.587083516223197
+  target total rank: 55
+  active rank before: 96
+  active rank after: 55
+  removed: 41
+
+Pruning event:
+  step: 253
+  target average rank: 4.5405443826826
+  target total rank: 54
+  active rank before: 96
+  active rank after: 54
+  removed: 42
+
+Pruning event:
+  step: 254
+  target average rank: 4.493584083374127
+  target total rank: 54
+  active rank before: 96
+  active rank after: 54
+  removed: 42
+
+Pruning event:
+  step: 255
+  target average rank: 4.446200721154682
+  target total rank: 53
+  active rank before: 96
+  active rank after: 53
+  removed: 43
+
+Pruning event:
+  step: 256
+  target average rank: 4.398392398881167
+  target total rank: 53
+  active rank before: 96
+  active rank after: 53
+  removed: 43
+
+Pruning event:
+  step: 257
+  target average rank: 4.35015721941048
+  target total rank: 52
+  active rank before: 96
+  active rank after: 52
+  removed: 44
+
+Pruning event:
+  step: 258
+  target average rank: 4.301493285599527
+  target total rank: 52
+  active rank before: 96
+  active rank after: 52
+  removed: 44
+
+Pruning event:
+  step: 259
+  target average rank: 4.252398700305206
+  target total rank: 51
+  active rank before: 96
+  active rank after: 51
+  removed: 45
+
+Pruning event:
+  step: 260
+  target average rank: 4.20287156638442
+  target total rank: 50
+  active rank before: 96
+  active rank after: 50
+  removed: 46
+
+Pruning event:
+  step: 261
+  target average rank: 4.1529099866940715
+  target total rank: 50
+  active rank before: 96
+  active rank after: 50
+  removed: 46
+
+Pruning event:
+  step: 262
+  target average rank: 4.102512064091059
+  target total rank: 49
+  active rank before: 96
+  active rank after: 49
+  removed: 47
+
+Pruning event:
+  step: 263
+  target average rank: 4.0516759014322865
+  target total rank: 49
+  active rank before: 96
+  active rank after: 49
+  removed: 47
+
+Pruning event:
+  step: 264
+  target average rank: 4.000399601574655
+  target total rank: 48
+  active rank before: 96
+  active rank after: 48
+  removed: 48
+
+Pruning event:
+  step: 265
+  target average rank: 3.948681267375065
+  target total rank: 47
+  active rank before: 96
+  active rank after: 47
+  removed: 49
+
+Pruning event:
+  step: 266
+  target average rank: 3.896519001690418
+  target total rank: 47
+  active rank before: 96
+  active rank after: 47
+  removed: 49
+
+Pruning event:
+  step: 267
+  target average rank: 3.843910907377616
+  target total rank: 46
+  active rank before: 96
+  active rank after: 46
+  removed: 50
+
+Pruning event:
+  step: 268
+  target average rank: 3.7908550872935614
+  target total rank: 45
+  active rank before: 96
+  active rank after: 45
+  removed: 51
+
+Pruning event:
+  step: 269
+  target average rank: 3.737349644295154
+  target total rank: 45
+  active rank before: 96
+  active rank after: 45
+  removed: 51
+
+Pruning event:
+  step: 270
+  target average rank: 3.6833926812392965
+  target total rank: 44
+  active rank before: 96
+  active rank after: 44
+  removed: 52
+
+Pruning event:
+  step: 271
+  target average rank: 3.6289823009828908
+  target total rank: 44
+  active rank before: 96
+  active rank after: 44
+  removed: 52
+
+Pruning event:
+  step: 272
+  target average rank: 3.5741166063828365
+  target total rank: 43
+  active rank before: 96
+  active rank after: 43
+  removed: 53
+
+Pruning event:
+  step: 273
+  target average rank: 3.5187937002960368
+  target total rank: 42
+  active rank before: 96
+  active rank after: 42
+  removed: 54
+
+Pruning event:
+  step: 274
+  target average rank: 3.4630116855793913
+  target total rank: 42
+  active rank before: 96
+  active rank after: 42
+  removed: 54
+
+Pruning event:
+  step: 275
+  target average rank: 3.4067686650898032
+  target total rank: 41
+  active rank before: 96
+  active rank after: 41
+  removed: 55
+
+Pruning event:
+  step: 276
+  target average rank: 3.350062741684173
+  target total rank: 40
+  active rank before: 96
+  active rank after: 40
+  removed: 56
+
+Pruning event:
+  step: 277
+  target average rank: 3.292892018219403
+  target total rank: 40
+  active rank before: 96
+  active rank after: 40
+  removed: 56
+
+Pruning event:
+  step: 278
+  target average rank: 3.2352545975523945
+  target total rank: 39
+  active rank before: 96
+  active rank after: 39
+  removed: 57
+
+Pruning event:
+  step: 279
+  target average rank: 3.177148582540048
+  target total rank: 38
+  active rank before: 96
+  active rank after: 38
+  removed: 58
+
+Pruning event:
+  step: 280
+  target average rank: 3.118572076039266
+  target total rank: 37
+  active rank before: 96
+  active rank after: 37
+  removed: 59
+
+Pruning event:
+  step: 281
+  target average rank: 3.0595231809069494
+  target total rank: 37
+  active rank before: 96
+  active rank after: 37
+  removed: 59
+
+Pruning event:
+  step: 282
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 283
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 284
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 285
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 286
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 287
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 288
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 289
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 290
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 291
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 292
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 293
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 294
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 295
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 296
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 297
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 298
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 299
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 300
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+step=300 task_loss=0.320029 total_loss=0.320232 dem=0.020250 target_avg_rank=3.0000 active_rank=36
+
+Pruning event:
+  step: 301
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 302
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 303
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 304
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 305
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 306
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 307
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 308
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 309
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 310
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 311
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+Pruning event:
+  step: 312
+  target average rank: 3.0
+  target total rank: 36
+  active rank before: 96
+  active rank after: 36
+  removed: 60
+
+======================================================================
+Validation
+======================================================================
+
+======================================================================
+Final Results
+======================================================================
+Train accuracy: 0.7862
+Validation accuracy: 0.8279816513761468
+Initial total rank: 96
+Scheduled final total rank: 36
+Final active rank: 36
+Scheduled rank reduction: 62.50%
+Actual current rank reduction: 62.50%
+Trainable parameters: 739682
+Total parameters: 67102562
+Pruning events: 231
+
+JSON results: results\sst2_dora_20260916_182023.json
+TXT results: results\sst2_dora_20260916_182023.txt
+Log: results\sst2_dora_20260916_181405.log

@@ -5,16 +5,35 @@ from torch import nn
 class AdaptiveRankLinear(nn.Module):
     """
     Linear layer with a frozen base transformation and a trainable
-    low-rank residual made from individual rank-1 components.
+    low-rank residual composed of individual rank-1 components.
 
     The residual is:
 
-        Delta W = sum_i c_i * b_i outer a_i
+        Delta W = sum_i c_i * (b_i outer a_i)
 
     where:
+
         a_i : input-side vector
         b_i : output-side vector
         c_i : trainable scalar gate
+
+    A has shape:
+
+        [rank, in_features]
+
+    B has shape:
+
+        [out_features, rank]
+
+    c has shape:
+
+        [rank]
+
+    The effective weight update is:
+
+        Delta W = B @ diag(c) @ A
+
+    followed by the LoRA scaling factor alpha / rank.
     """
 
     def __init__(
@@ -26,34 +45,53 @@ class AdaptiveRankLinear(nn.Module):
     ):
         super().__init__()
 
+        if not isinstance(base_layer, nn.Linear):
+            raise TypeError(
+                "base_layer must be an instance of torch.nn.Linear"
+            )
+
         if rank <= 0:
             raise ValueError("rank must be positive")
 
+        if alpha < 0:
+            raise ValueError("alpha must be non-negative")
+
+        if not 0.0 <= dropout < 1.0:
+            raise ValueError("dropout must be in [0, 1)")
+
         self.in_features = base_layer.in_features
         self.out_features = base_layer.out_features
+
         self.rank = rank
         self.alpha = alpha
         self.scale = alpha / rank
 
-        # Keep the original linear transformation.
+        # ------------------------------------------------------------
+        # Frozen base linear transformation
+        # ------------------------------------------------------------
+
         self.base = nn.Linear(
             self.in_features,
             self.out_features,
             bias=base_layer.bias is not None,
         )
 
-        self.base.weight.data.copy_(base_layer.weight.data)
+        with torch.no_grad():
+            self.base.weight.copy_(base_layer.weight)
 
-        if base_layer.bias is not None:
-            self.base.bias.data.copy_(base_layer.bias.data)
+            if base_layer.bias is not None:
+                self.base.bias.copy_(base_layer.bias)
 
-        # The pretrained/base parameters are frozen.
         self.base.weight.requires_grad = False
 
         if self.base.bias is not None:
             self.base.bias.requires_grad = False
 
-        # Each row of A represents one input-side vector.
+        # ------------------------------------------------------------
+        # Trainable adaptive-rank parameters
+        # ------------------------------------------------------------
+
+        # One input-side vector per rank component.
         #
         # Shape:
         #     [rank, in_features]
@@ -61,10 +99,12 @@ class AdaptiveRankLinear(nn.Module):
             torch.empty(
                 rank,
                 self.in_features,
+                device=base_layer.weight.device,
+                dtype=base_layer.weight.dtype,
             )
         )
 
-        # Each column of B represents one output-side vector.
+        # One output-side vector per rank component.
         #
         # Shape:
         #     [out_features, rank]
@@ -72,36 +112,37 @@ class AdaptiveRankLinear(nn.Module):
             torch.empty(
                 self.out_features,
                 rank,
+                device=base_layer.weight.device,
+                dtype=base_layer.weight.dtype,
             )
         )
 
-        # One scalar gate per rank component.
+        # One scalar gate for every rank-1 component.
         #
         # Shape:
         #     [rank]
+        #
+        # Starting at zero means the adapter initially contributes
+        # no residual update to the pretrained model.
         self.c = nn.Parameter(
-            torch.zeros(rank)
+            torch.zeros(
+                rank,
+                device=base_layer.weight.device,
+                dtype=base_layer.weight.dtype,
+            )
         )
 
         self.dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
 
-        # Once a component is pruned, this mask prevents it
-        # from becoming active again.
-        self.active_mask: torch.Tensor
-        self.register_buffer(
-            "active_mask",
-            torch.ones(rank),
-        )
-
     def reset_parameters(self):
         """
-        Initialize the two low-rank factors.
+        Initialize the trainable low-rank parameters.
 
-        We initialize both factors with Kaiming initialization
-        because each rank component must start with a meaningful
-        direction before importance-based pruning begins.
+        A and B use Kaiming-uniform initialization.
+
+        c starts at zero so the initial adapter contribution is zero.
         """
 
         nn.init.kaiming_uniform_(
@@ -114,74 +155,78 @@ class AdaptiveRankLinear(nn.Module):
             a=5 ** 0.5,
         )
 
+        with torch.no_grad():
+            self.c.zero_()
+
     def forward(self, x):
         """
         Compute:
 
-            base(x) + low_rank_update(x)
+            base(x) + low_rank(x)
+
+        where:
+
+            low_rank(x)
+                = dropout(x)
+                -> A
+                -> component gates c
+                -> B
+                -> alpha / rank
         """
 
         base_output = self.base(x)
 
-        # Apply dropout only to the adapter input.
         adapter_input = self.dropout(x)
 
-        # A maps input features to rank components.
-        #
-        # [batch, in_features]
-        #        ↓ A
-        # [batch, rank]
+        # [batch, ..., in_features]
+        # ->
+        # [batch, ..., rank]
         low_rank = adapter_input @ self.A.T
 
-        # Apply the scalar gate belonging to each component.
-        #
-        # [batch, rank]
-        #        *
-        # [rank]
-        low_rank = low_rank * (
-            self.c * self.active_mask
-        )
+        # Apply one scalar gate to each rank component.
+        low_rank = low_rank * self.c
 
-        # B maps rank components back to output space.
-        #
-        # [batch, rank]
-        #        ↓ B
-        # [batch, out_features]
+        # [batch, ..., rank]
+        # ->
+        # [batch, ..., out_features]
         low_rank = low_rank @ self.B.T
 
+        # LoRA scaling.
         low_rank = low_rank * self.scale
 
         return base_output + low_rank
 
     def component_matrices(self):
         """
-        Return every rank-1 weight update separately.
+        Return every rank-1 weight component separately.
+
+        Returns:
+
+            [rank, out_features, in_features]
 
         Component i is:
 
-            c_i * b_i outer a_i
+            c_i * (b_i outer a_i)
 
-        Returned shape:
+        before the global alpha / rank scaling.
 
-            [rank, out_features, in_features]
+        The scaling is intentionally applied here so that the
+        returned components correspond to the actual weight update.
         """
 
-        scaled_A = (
-            self.A
-            * (self.c * self.active_mask).unsqueeze(1)
-        )
+        scaled_A = self.A * self.c.unsqueeze(1)
 
-        return torch.einsum(
+        components = torch.einsum(
             "or,ri->roi",
             self.B,
             scaled_A,
         )
 
+        return components * self.scale
+
     def merged_update(self):
         """
-        Return the complete low-rank weight update:
-
-            Delta W = sum_i Delta W_i
+        Return the complete low-rank weight update.
 
         Shape:
 
@@ -192,36 +237,48 @@ class AdaptiveRankLinear(nn.Module):
 
     def prune_components(self, indices):
         """
-        Permanently disable selected rank components.
+        Set selected component gates to zero.
 
-        We do not physically delete their parameters.
+        The A and B parameters are retained.
 
-        Instead, their gate is forced to zero and the active mask
-        prevents them from contributing again.
+        This is important because a component that has been pruned
+        can potentially become active again if its scalar gate c
+        becomes non-zero during subsequent optimization.
         """
 
         if len(indices) == 0:
             return
 
         with torch.no_grad():
-
             for index in indices:
+                if index < 0 or index >= self.rank:
+                    raise IndexError(
+                        f"component index {index} is outside "
+                        f"[0, {self.rank})"
+                    )
 
                 self.c[index] = 0.0
-                self.active_mask[index] = 0.0
 
     def active_rank(self):
         """
-        Number of currently active rank components.
+        Return the number of components whose scalar gates are
+        currently non-zero.
         """
 
         return int(
-            self.active_mask.sum().item()
+            torch.count_nonzero(
+                self.c.detach()
+            ).item()
         )
 
 
 class DoRALinear(AdaptiveRankLinear):
-    """Compatibility wrapper for the original DoRA layer API."""
+    """
+    Compatibility wrapper around AdaptiveRankLinear.
+
+    The name DoRALinear is retained so existing tests and imports
+    continue to work.
+    """
 
     def __init__(
         self,
@@ -231,7 +288,7 @@ class DoRALinear(AdaptiveRankLinear):
         dropout: float = 0.0,
     ):
         super().__init__(
-            base_layer,
+            base_layer=base_layer,
             rank=start_rank,
             alpha=alpha,
             dropout=dropout,

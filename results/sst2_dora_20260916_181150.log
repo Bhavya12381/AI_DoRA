@@ -1,0 +1,33 @@
+======================================================================
+DoRA Dynamic-Rank SST-2 Experiment
+======================================================================
+
+Configuration
+----------------------------------------------------------------------
+Model: distilbert-base-uncased
+Initial rank: 8
+Final rank: 3
+Alpha: 8.0
+Dropout: 0.1
+DEM coefficient: 0.01
+Train subset: 5000
+
+Loading SST-2...
+----------------------------------------------------------------------
+DatasetDict({
+    train: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 67349
+    })
+    validation: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 872
+    })
+    test: Dataset({
+        features: ['idx', 'sentence', 'label'],
+        num_rows: 1821
+    })
+})
+
+Loading model and tokenizer...
+----------------------------------------------------------------------

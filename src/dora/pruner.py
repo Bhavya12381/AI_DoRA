@@ -9,21 +9,21 @@ class DynamicRankPruner:
     """
     Dynamic rank controller.
 
-    Responsibilities:
-        1. Compute component importance.
-        2. Maintain an exponential moving average (EMA)
-           of importance scores.
-        3. Obtain the target average rank from the
-           cubic budget scheduler.
-        4. Convert average rank into a global component budget.
-        5. Globally prune the least-important active components.
+    At each training step:
 
-    The scheduler's rank is interpreted as:
+        1. calculate component importance
+        2. update EMA importance
+        3. obtain the target average rank from the cubic schedule
+        4. convert it into a global target component count
+        5. set the gates of the least-important active components to zero
 
-        target average rank per adaptive layer
+    A and B are never physically deleted.
 
-    while pruning is performed globally across all
-    AdaptiveRankLinear layers.
+    A component is represented as inactive when its scalar gate c_i
+    is zero.
+
+    Because the gate remains a trainable parameter, optimization can
+    potentially make a previously zero gate non-zero again.
     """
 
     def __init__(
@@ -52,29 +52,15 @@ class DynamicRankPruner:
             final_fraction=final_fraction,
         )
 
-        # EMA importance scores.
-        #
-        # Example:
-        #
-        # {
-        #     "fc1": tensor([...]),
-        #     "fc2": tensor([...])
-        # }
-        #
         self.ema_scores = {}
 
         self._create_score_storage()
 
-    # ---------------------------------------------------------
-    # Layer discovery
-    # ---------------------------------------------------------
-
     def _adaptive_layers(self):
         """
-        Yield all adaptive layers in the model.
+        Yield:
 
-        Returns:
-            (name, module)
+            (module_name, AdaptiveRankLinear)
         """
 
         for name, module in self.model.named_modules():
@@ -85,13 +71,9 @@ class DynamicRankPruner:
             ):
                 yield name, module
 
-    # ---------------------------------------------------------
-    # Initialization
-    # ---------------------------------------------------------
-
     def _create_score_storage(self):
         """
-        Create an EMA score vector for every adaptive layer.
+        Initialize one EMA score vector per adaptive layer.
         """
 
         for name, layer in self._adaptive_layers():
@@ -101,22 +83,15 @@ class DynamicRankPruner:
                 dtype=torch.float32,
             )
 
-    # ---------------------------------------------------------
-    # Importance
-    # ---------------------------------------------------------
-
     @torch.no_grad()
     def update_importance(self):
         """
-        Calculate current importance scores and update
-        their exponential moving averages.
+        Calculate current component importance and update its EMA.
 
-        EMA:
+            EMA_t =
+                beta * EMA_(t-1)
+                + (1-beta) * current
 
-            m_t =
-                beta * m_(t-1)
-                +
-                (1-beta) * s_t
         """
 
         for name, layer in self._adaptive_layers():
@@ -125,41 +100,32 @@ class DynamicRankPruner:
                 layer
             ).detach()
 
-            previous_scores = self.ema_scores[
-                name
-            ].to(
+            previous_scores = self.ema_scores[name].to(
                 device=current_scores.device,
                 dtype=current_scores.dtype,
             )
 
             updated_scores = (
-                self.ema_decay
-                * previous_scores
-                +
-                (1.0 - self.ema_decay)
-                * current_scores
+                self.ema_decay * previous_scores
+                + (1.0 - self.ema_decay) * current_scores
             )
 
+            # Keep the stored EMA on CPU so that the controller does
+            # not unnecessarily keep another GPU tensor.
             self.ema_scores[name] = (
                 updated_scores.detach().cpu()
             )
 
-    # ---------------------------------------------------------
-    # Budget
-    # ---------------------------------------------------------
-
     def target_average_rank(self, step):
         """
-        Return the scheduler's target average rank
-        for a particular training step.
+        Return the scheduled average rank per adaptive layer.
         """
 
         return self.scheduler.budget(step)
 
     def number_of_adaptive_layers(self):
         """
-        Number of adaptive layers participating in
-        dynamic rank allocation.
+        Return the number of adaptive linear layers.
         """
 
         return sum(
@@ -167,22 +133,27 @@ class DynamicRankPruner:
             for _ in self._adaptive_layers()
         )
 
+    def maximum_rank(self):
+        """
+        Return the total number of rank components before pruning.
+        """
+
+        total = 0
+
+        for _, layer in self._adaptive_layers():
+            total += layer.rank
+
+        return total
+
     def target_total_rank(self, step):
         """
-        Convert:
+        Convert the scheduled average rank into a global component
+        budget.
 
-            target average rank
+        The paper's schedule is expressed as an average rank per
+        adaptive layer.
 
-        into:
-
-            target total number of active components.
-
-        Example:
-
-            2 adaptive layers
-            target average rank = 3
-
-            target total rank = 3 * 2 = 6
+        Here that is converted to an integer total component budget.
         """
 
         layer_count = (
@@ -196,45 +167,40 @@ class DynamicRankPruner:
             self.target_average_rank(step)
         )
 
-        return int(
+        target_total = int(
             round(
-                average_rank
-                * layer_count
+                average_rank * layer_count
             )
         )
 
-    # ---------------------------------------------------------
-    # Current rank
-    # ---------------------------------------------------------
+        return max(
+            0,
+            min(
+                target_total,
+                self.maximum_rank(),
+            ),
+        )
 
     def active_rank(self):
         """
-        Return the total number of active components
-        across the entire model.
+        Count currently non-zero component gates across all
+        adaptive layers.
         """
 
         total = 0
 
         for _, layer in self._adaptive_layers():
-
             total += layer.active_rank()
 
         return total
 
-    # ---------------------------------------------------------
-    # Pruning
-    # ---------------------------------------------------------
-
     @torch.no_grad()
     def prune(self, step):
         """
-        Globally prune the least-important components.
+        Prune the least-important currently active components until
+        the current active count reaches the scheduled target.
 
-        The scheduler determines HOW MANY components
-        should remain.
-
-        EMA importance determines WHICH components
-        should be removed.
+        Components are not deleted. Their c gates are set to zero.
         """
 
         layers = list(
@@ -242,18 +208,16 @@ class DynamicRankPruner:
         )
 
         if len(layers) == 0:
-
             return {
                 "step": step,
                 "target_average_rank": 0.0,
                 "target_total_rank": 0,
+                "maximum_rank": 0,
+                "active_rank_before": 0,
                 "active_rank": 0,
+                "removed_count": 0,
                 "removed": [],
             }
-
-        # -----------------------------------------------------
-        # Determine target
-        # -----------------------------------------------------
 
         target_average = (
             self.target_average_rank(step)
@@ -263,33 +227,31 @@ class DynamicRankPruner:
             self.target_total_rank(step)
         )
 
-        current_total = self.active_rank()
+        current_total = (
+            self.active_rank()
+        )
 
-        # Never increase rank through pruning.
+        # Never add components inside the pruning operation.
         target_total = min(
             target_total,
             current_total,
         )
 
         remove_count = (
-            current_total
-            - target_total
+            current_total - target_total
         )
 
-        # Nothing to remove.
         if remove_count <= 0:
-
             return {
                 "step": step,
                 "target_average_rank": target_average,
                 "target_total_rank": target_total,
+                "maximum_rank": self.maximum_rank(),
+                "active_rank_before": current_total,
                 "active_rank": current_total,
+                "removed_count": 0,
                 "removed": [],
             }
-
-        # -----------------------------------------------------
-        # Build global candidate list
-        # -----------------------------------------------------
 
         candidates = []
 
@@ -297,8 +259,12 @@ class DynamicRankPruner:
 
             scores = self.ema_scores[name]
 
+            gate_values = (
+                layer.c.detach().cpu()
+            )
+
             active_indices = torch.where(
-                layer.active_mask.cpu() > 0
+                gate_values != 0
             )[0]
 
             for index in active_indices.tolist():
@@ -315,10 +281,7 @@ class DynamicRankPruner:
                     )
                 )
 
-        # -----------------------------------------------------
-        # Lowest importance first
-        # -----------------------------------------------------
-
+        # Lowest importance is pruned first.
         candidates.sort(
             key=lambda item: item[0]
         )
@@ -330,10 +293,6 @@ class DynamicRankPruner:
         layer_map = dict(layers)
 
         removed = []
-
-        # -----------------------------------------------------
-        # Permanently disable selected components
-        # -----------------------------------------------------
 
         for score, name, index in selected:
 
@@ -353,34 +312,21 @@ class DynamicRankPruner:
             "step": step,
             "target_average_rank": target_average,
             "target_total_rank": target_total,
+            "maximum_rank": self.maximum_rank(),
+            "active_rank_before": current_total,
             "active_rank": self.active_rank(),
+            "removed_count": len(removed),
             "removed": removed,
         }
 
-    # ---------------------------------------------------------
-    # Complete dynamic-rank step
-    # ---------------------------------------------------------
-
     def step(self, step):
         """
-        Perform one dynamic rank update:
-
-            current importance
-                    ↓
-                  EMA
-                    ↓
-              target budget
-                    ↓
-              global pruning
+        Update importance and then apply the current pruning budget.
         """
 
         self.update_importance()
 
         return self.prune(step)
-
-    # ---------------------------------------------------------
-    # Inspect EMA scores
-    # ---------------------------------------------------------
 
     def scores(self):
         """
@@ -389,17 +335,12 @@ class DynamicRankPruner:
 
         return {
             name: values.clone()
-            for name, values
-            in self.ema_scores.items()
+            for name, values in self.ema_scores.items()
         }
-
-    # ---------------------------------------------------------
-    # Human-readable summary
-    # ---------------------------------------------------------
 
     def summary(self):
         """
-        Return the current active rank of every adaptive layer.
+        Return current rank information for every adaptive layer.
         """
 
         result = {}
