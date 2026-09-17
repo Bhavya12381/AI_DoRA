@@ -50,7 +50,7 @@ BATCH_SIZE = 64
 
 LEARNING_RATE = 8e-4
 
-NUM_EPOCHS = 60
+NUM_EPOCHS = 1
 
 INITIAL_RANK = 3
 
@@ -70,6 +70,7 @@ END_FRACTION = 0.50
 
 PRUNE_INTERVAL = 10
 
+TOTAL_STEPS = None
 
 # -------------------------------------------------------------
 # Evaluation
@@ -235,6 +236,13 @@ def main():
         collate_fn=collator,
     )
 
+    TOTAL_STEPS = len(train_loader) * NUM_EPOCHS
+
+    print(
+        f"Total training steps: "
+        f"{TOTAL_STEPS}"
+    )
+
     validation_loader = DataLoader(
         validation_dataset,
         batch_size=BATCH_SIZE,
@@ -255,10 +263,6 @@ def main():
     )
 
     freeze_model(model)
-
-    for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Linear):
-            print(name)
 
     # ---------------------------------------------------------
     # Adaptive target layers
@@ -340,15 +344,186 @@ def main():
         f"{trainable_parameters:,}"
     )
 
+
     # ---------------------------------------------------------
-    # Stop here for the first verification run.
-    #
-    # We intentionally do not start training yet.
+    # Optimizer
+    # ---------------------------------------------------------
+
+    optimizer = torch.optim.AdamW(
+        [
+            parameter
+            for parameter in model.parameters()
+            if parameter.requires_grad
+        ],
+        lr=LEARNING_RATE,
+    )
+
+    # ---------------------------------------------------------
+    # Dynamic-rank pruner
+    # ---------------------------------------------------------
+
+    pruner = DynamicRankPruner(
+        model=model,
+        initial_rank=INITIAL_RANK,
+        final_rank=FINAL_RANK,
+        total_steps=TOTAL_STEPS,
+        ema_decay=EMA_DECAY,
+        start_fraction=START_FRACTION,
+        end_fraction=END_FRACTION,
+        prune_interval=PRUNE_INTERVAL,
+    )
+
+    # ---------------------------------------------------------
+    # Training
+    # ---------------------------------------------------------
+
+    model.train()
+
+    step = 0
+
+    for epoch in range(NUM_EPOCHS):
+
+        print()
+        print(
+            f"Epoch {epoch + 1}/{NUM_EPOCHS}"
+        )
+
+        for batch in train_loader:
+
+            if step >= TOTAL_STEPS:
+                break
+
+            batch = {
+                key: value.to(device)
+                for key, value in batch.items()
+            }
+
+            # -------------------------------------------------
+            # Forward
+            # -------------------------------------------------
+
+            outputs = model(
+                **batch
+            )
+
+            task_loss = outputs.loss
+
+            # -------------------------------------------------
+            # DEM regularization
+            # -------------------------------------------------
+
+            loss, regularization = dem_loss(
+                task_loss,
+                model,
+                DEM_COEFFICIENT,
+            )
+
+            # -------------------------------------------------
+            # Backward
+            # -------------------------------------------------
+
+            optimizer.zero_grad()
+
+            loss.backward()
+
+            # -------------------------------------------------
+            # Optimizer update
+            # -------------------------------------------------
+
+            optimizer.step()
+
+            # -------------------------------------------------
+            # Dynamic pruning
+            # -------------------------------------------------
+
+            result = pruner.step(
+                step
+            )
+
+            # -------------------------------------------------
+            # Lock final pruning after optimizer update.
+            # -------------------------------------------------
+
+            pruner.enforce_final_mask()
+
+            # -------------------------------------------------
+            # Logging
+            # -------------------------------------------------
+
+            if (
+                step % PRUNE_INTERVAL == 0
+                or step == TOTAL_STEPS - 1
+            ):
+
+                print(
+                    f"step={step} "
+                    f"loss={loss.item():.4f} "
+                    f"dem={regularization.item():.6f} "
+                    f"active_rank="
+                    f"{result['active_rank']} "
+                    f"removed="
+                    f"{result['removed_count']}"
+                )
+
+            step += 1
+
+        if step >= TOTAL_STEPS:
+            break
+
+    # ---------------------------------------------------------
+    # Final mask enforcement
+    # ---------------------------------------------------------
+
+    pruner.enforce_final_mask()
+
+    # ---------------------------------------------------------
+    # Final rank report
     # ---------------------------------------------------------
 
     print()
     print(
-        "RoBERTa target-layer inspection complete."
+        "Final rank summary:"
+    )
+
+    summary = pruner.summary()
+
+    for name, values in summary.items():
+
+        print(
+            f"{name}: "
+            f"active={values['active_rank']} "
+            f"/ maximum={values['maximum_rank']} "
+            f"/ final_pruned="
+            f"{values['final_pruned']}"
+        )
+
+    print()
+
+    print(
+        "Total active rank:",
+        pruner.active_rank(),
+    )
+
+    print(
+        "Target final total rank:",
+        pruner.target_total_rank(
+            pruner.scheduler.end_step
+        ),
+    )
+
+    # ---------------------------------------------------------
+    # Validation
+    # ---------------------------------------------------------
+
+    validation_accuracy = evaluate(
+        model,
+        validation_loader,
+        device,
+    )
+
+    print(
+        f"Validation accuracy: "
+        f"{validation_accuracy:.4f}"
     )
 
 
