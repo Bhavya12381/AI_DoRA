@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ai-dora"
+version = "0.1.0"
+description = "Independent reimplementation of DoRA: Dynamic Low-Rank Adaptation (ACL 2024)"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0",
+]
+
+[project.optional-dependencies]
+transformers = [
+    "transformers>=4.30",
+    "datasets>=2.12",
+]
+dev = [
+    "pytest>=7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Add 'src' to sys.path so that 'import src.dora' works without
+# installing the package.
+pythonpath = ["."]
+testpaths = ["tests"]
+

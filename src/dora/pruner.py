@@ -389,7 +389,16 @@ class DynamicRankPruner:
             }
 
         # -----------------------------------------------------
-        # Determine the global threshold.
+        # Determine exactly which components to suppress.
+        #
+        # Strategy: sort all global EMA scores in ascending
+        # order and take the bottom prune_rank_num by position
+        # in that sorted order.
+        #
+        # This avoids the threshold-comparison pitfall where
+        # score <= threshold would remove ALL components with
+        # the threshold value when many are tied (e.g. all
+        # zeros at initialisation).
         # -----------------------------------------------------
 
         prune_rank_num = min(
@@ -397,13 +406,17 @@ class DynamicRankPruner:
             all_scores.numel(),
         )
 
-        threshold = torch.kthvalue(
+        # argsort gives positions of scores from smallest to
+        # largest. The first prune_rank_num of those positions
+        # are the components we want to suppress.
+        sorted_positions = torch.argsort(
             all_scores,
-            max(
-                prune_rank_num,
-                1,
-            ),
-        ).values
+            stable=True,
+        )
+
+        positions_to_prune = set(
+            sorted_positions[:prune_rank_num].tolist()
+        )
 
         layers_by_name = dict(
             layers
@@ -412,7 +425,7 @@ class DynamicRankPruner:
         removed = []
 
         # -----------------------------------------------------
-        # Suppress components below/equal to threshold.
+        # Suppress the selected components.
         # -----------------------------------------------------
 
         for position, (
@@ -420,25 +433,26 @@ class DynamicRankPruner:
             component_index,
         ) in enumerate(locations):
 
+            if position not in positions_to_prune:
+                continue
+
             score = all_scores[position]
 
-            if score <= threshold:
+            layers_by_name[
+                name
+            ].prune_components(
+                [component_index]
+            )
 
-                layers_by_name[
-                    name
-                ].prune_components(
-                    [component_index]
-                )
-
-                removed.append(
-                    {
-                        "layer": name,
-                        "component": component_index,
-                        "score": float(
-                            score.item()
-                        ),
-                    }
-                )
+            removed.append(
+                {
+                    "layer": name,
+                    "component": component_index,
+                    "score": float(
+                        score.item()
+                    ),
+                }
+            )
 
         # -----------------------------------------------------
         # Final pruning checkpoint.

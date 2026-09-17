@@ -310,6 +310,16 @@ for step in range(total_steps):
     )
 
     # --------------------------------------------------------
+    # Enforce final mask after optimizer update.
+    #
+    # Once the pruning phase has finished, permanently pruned
+    # scalar gates must not recover.  This call is a no-op
+    # while pruning_finished is False.
+    # --------------------------------------------------------
+
+    pruner.enforce_final_mask()
+
+    # --------------------------------------------------------
     # Logging
     # --------------------------------------------------------
 

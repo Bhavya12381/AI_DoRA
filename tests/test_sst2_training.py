@@ -451,8 +451,8 @@ def main():
         final_rank=FINAL_RANK,
         total_steps=total_steps,
         ema_decay=EMA_DECAY,
-        warmup_fraction=WARMUP_FRACTION,
-        final_fraction=FINAL_FRACTION,
+        start_fraction=WARMUP_FRACTION,
+        end_fraction=FINAL_FRACTION,
         prune_interval=PRUNE_INTERVAL,
 )
 

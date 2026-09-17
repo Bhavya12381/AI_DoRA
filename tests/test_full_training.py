@@ -246,6 +246,17 @@ for epoch in range(num_epochs):
         )
 
         # -------------------------------------------------
+        # Enforce final mask after optimizer update.
+        #
+        # Once the pruning phase has finished, permanently
+        # pruned scalar gates must not recover due to gradient
+        # updates.  enforce_final_mask() is a no-op before
+        # pruning_finished is True.
+        # -------------------------------------------------
+
+        pruner.enforce_final_mask()
+
+        # -------------------------------------------------
         # Logging
         # -------------------------------------------------
 

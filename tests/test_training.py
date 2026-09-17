@@ -121,6 +121,10 @@ def test_end_to_end_training():
             step
         )
 
+        # Enforce final mask after optimizer updates so
+        # that permanently pruned gates cannot recover.
+        pruner.enforce_final_mask()
+
         pruning_results.append(
             pruning_result
         )

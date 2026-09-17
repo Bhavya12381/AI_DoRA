@@ -1,2 +1,13 @@
-torch
-pytest
+# Core requirements (always needed)
+torch>=2.0
+pytest>=7.0
+
+# Transformer experiments (optional)
+# Required only for:
+#   examples/hf_roberta_sst2.py
+#   tests/test_sst2_training.py
+#   tests/test_transformer_adapter.py
+#   tests/test_transformer_equivalence.py
+#   tests/test_transformer_inspection.py
+# transformers>=4.30
+# datasets>=2.12

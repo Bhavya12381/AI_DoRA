@@ -371,7 +371,7 @@ def test_pruning_interval():
     assert result["removed_count"] == 0
     assert result["active_rank"] == 8
 
-    # Step 60:
+    # Step 40:
     # The cubic schedule has progressed far enough that
     # the target rank is below the initial rank.
     result = pruner.step(40)
