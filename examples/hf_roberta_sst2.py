@@ -28,7 +28,7 @@ from transformers import (
     DataCollatorWithPadding,
 )
 
-from src.dora.inject import replace_linear_modules
+from src.dora.inject import freeze_model, replace_linear_modules
 from src.dora.pruner import DynamicRankPruner
 from src.dora.regularization import dem_loss
 
@@ -253,6 +253,7 @@ def main():
         )
     )
 
+    freeze_model(model)
     # ---------------------------------------------------------
     # Adaptive target layers
     # ---------------------------------------------------------
