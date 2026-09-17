@@ -1,0 +1,12 @@
+{
+  "model": "distilbert-base-uncased",
+  "dataset": "sst2",
+  "train_subset_size": 5000,
+  "total_steps": 1000,
+  "initial_rank": 48,
+  "final_rank": 18,
+  "initial_total_rank": 576,
+  "final_total_rank": 216,
+  "trainable_parameters": 885312,
+  "validation_accuracy": 0.8624
+}

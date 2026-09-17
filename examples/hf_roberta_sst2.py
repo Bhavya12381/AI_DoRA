@@ -28,8 +28,10 @@ from transformers import (
     DataCollatorWithPadding,
 )
 
-from src.dora.inject import replace_linear_modules
-from src.dora.transformer import freeze_model
+from src.dora.transformer import (
+    freeze_model,
+    replace_linear_layers,
+)
 from src.dora.pruner import DynamicRankPruner
 from src.dora.regularization import dem_loss
 
@@ -38,7 +40,7 @@ from src.dora.regularization import dem_loss
 # Configuration
 # -------------------------------------------------------------
 
-MODEL_NAME = "distilbert-base-uncased"
+MODEL_NAME = "roberta-base"
 
 MAX_LENGTH = 128
 
@@ -255,6 +257,10 @@ def main():
     )
 
     freeze_model(model)
+
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Linear):
+            print(name)
     # ---------------------------------------------------------
     # Adaptive target layers
     # ---------------------------------------------------------
@@ -266,224 +272,227 @@ def main():
     # experimental configuration.
     # ---------------------------------------------------------
 
-    target_keywords = [
-        "q_lin",
-        "v_lin",
-    ]
+#     target_keywords = [
+#         "query",
+#         "key",
+#         "value",
+#         "output.dense",
+#         "intermediate.dense",
+#     ]
 
-    replace_linear_modules(
-        model,
-        target_keywords=target_keywords,
-        start_rank=INITIAL_RANK,
-        alpha=ALPHA,
-        dropout=DROPOUT,
-    )
+#     replace_linear_modules(
+#         model,
+#         target_keywords=target_keywords,
+#         start_rank=INITIAL_RANK,
+#         alpha=ALPHA,
+#         dropout=DROPOUT,
+#     )
 
-    model.to(device)
+#     model.to(device)
 
-    # ---------------------------------------------------------
-    # Trainable parameter report
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Trainable parameter report
+#     # ---------------------------------------------------------
 
-    total_parameters = sum(
-        parameter.numel()
-        for parameter in model.parameters()
-    )
+#     total_parameters = sum(
+#         parameter.numel()
+#         for parameter in model.parameters()
+#     )
 
-    trainable_parameters = sum(
-        parameter.numel()
-        for parameter in model.parameters()
-        if parameter.requires_grad
-    )
+#     trainable_parameters = sum(
+#         parameter.numel()
+#         for parameter in model.parameters()
+#         if parameter.requires_grad
+#     )
 
-    print(
-        f"Total parameters: "
-        f"{total_parameters:,}"
-    )
+#     print(
+#         f"Total parameters: "
+#         f"{total_parameters:,}"
+#     )
 
-    print(
-        f"Trainable parameters: "
-        f"{trainable_parameters:,}"
-    )
+#     print(
+#         f"Trainable parameters: "
+#         f"{trainable_parameters:,}"
+#     )
 
-    # ---------------------------------------------------------
-    # Optimizer
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Optimizer
+#     # ---------------------------------------------------------
 
-    optimizer = torch.optim.AdamW(
-        [
-            parameter
-            for parameter in model.parameters()
-            if parameter.requires_grad
-        ],
-        lr=LEARNING_RATE,
-    )
+#     optimizer = torch.optim.AdamW(
+#         [
+#             parameter
+#             for parameter in model.parameters()
+#             if parameter.requires_grad
+#         ],
+#         lr=LEARNING_RATE,
+#     )
 
-    # ---------------------------------------------------------
-    # Pruner
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Pruner
+#     # ---------------------------------------------------------
 
-    pruner = DynamicRankPruner(
-        model=model,
-        initial_rank=INITIAL_RANK,
-        final_rank=FINAL_RANK,
-        total_steps=TOTAL_STEPS,
-        ema_decay=EMA_DECAY,
-        start_fraction=START_FRACTION,
-        end_fraction=END_FRACTION,
-        prune_interval=PRUNE_INTERVAL,
-    )
+#     pruner = DynamicRankPruner(
+#         model=model,
+#         initial_rank=INITIAL_RANK,
+#         final_rank=FINAL_RANK,
+#         total_steps=TOTAL_STEPS,
+#         ema_decay=EMA_DECAY,
+#         start_fraction=START_FRACTION,
+#         end_fraction=END_FRACTION,
+#         prune_interval=PRUNE_INTERVAL,
+#     )
 
-    # ---------------------------------------------------------
-    # Training
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Training
+#     # ---------------------------------------------------------
 
-    model.train()
+#     model.train()
 
-    step = 0
+#     step = 0
 
-    for epoch in range(NUM_EPOCHS):
+#     for epoch in range(NUM_EPOCHS):
 
-        for batch in train_loader:
+#         for batch in train_loader:
 
-            if step >= TOTAL_STEPS:
-                break
+#             if step >= TOTAL_STEPS:
+#                 break
 
-            batch = {
-                key: value.to(device)
-                for key, value in batch.items()
-            }
+#             batch = {
+#                 key: value.to(device)
+#                 for key, value in batch.items()
+#             }
 
-            # -------------------------------------------------
-            # Forward
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # Forward
+#             # -------------------------------------------------
 
-            outputs = model(
-                **batch
-            )
+#             outputs = model(
+#                 **batch
+#             )
 
-            task_loss = outputs.loss
+#             task_loss = outputs.loss
 
-            # -------------------------------------------------
-            # DEM regularization
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # DEM regularization
+#             # -------------------------------------------------
 
-            loss, regularization = dem_loss(
-                task_loss,
-                model,
-                DEM_COEFFICIENT,
-            )
+#             loss, regularization = dem_loss(
+#                 task_loss,
+#                 model,
+#                 DEM_COEFFICIENT,
+#             )
 
-            # -------------------------------------------------
-            # Backward
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # Backward
+#             # -------------------------------------------------
 
-            optimizer.zero_grad()
+#             optimizer.zero_grad()
 
-            loss.backward()
+#             loss.backward()
 
-            # -------------------------------------------------
-            # Optimizer update
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # Optimizer update
+#             # -------------------------------------------------
 
-            optimizer.step()
+#             optimizer.step()
 
-            # -------------------------------------------------
-            # Importance + dynamic pruning
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # Importance + dynamic pruning
+#             # -------------------------------------------------
 
-            result = pruner.step(
-                step
-            )
+#             result = pruner.step(
+#                 step
+#             )
 
-            # -------------------------------------------------
-            # IMPORTANT:
-            #
-            # After the pruning phase has finished, the scalar
-            # gates are still optimizer parameters.
-            #
-            # Therefore we MUST reapply the final mask after
-            # optimizer.step().
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # IMPORTANT:
+#             #
+#             # After the pruning phase has finished, the scalar
+#             # gates are still optimizer parameters.
+#             #
+#             # Therefore we MUST reapply the final mask after
+#             # optimizer.step().
+#             # -------------------------------------------------
 
-            pruner.enforce_final_mask()
+#             pruner.enforce_final_mask()
 
-            # -------------------------------------------------
-            # Logging
-            # -------------------------------------------------
+#             # -------------------------------------------------
+#             # Logging
+#             # -------------------------------------------------
 
-            if step % 20 == 0:
+#             if step % 20 == 0:
 
-                print(
-                    f"step={step} "
-                    f"loss={loss.item():.4f} "
-                    f"active_rank="
-                    f"{result['active_rank']} "
-                    f"removed="
-                    f"{result['removed_count']}"
-                )
+#                 print(
+#                     f"step={step} "
+#                     f"loss={loss.item():.4f} "
+#                     f"active_rank="
+#                     f"{result['active_rank']} "
+#                     f"removed="
+#                     f"{result['removed_count']}"
+#                 )
 
-            step += 1
+#             step += 1
 
-        if step >= TOTAL_STEPS:
-            break
+#         if step >= TOTAL_STEPS:
+#             break
 
-    # ---------------------------------------------------------
-    # Final mask enforcement
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Final mask enforcement
+#     # ---------------------------------------------------------
 
-    pruner.enforce_final_mask()
+#     pruner.enforce_final_mask()
 
-    # ---------------------------------------------------------
-    # Final rank report
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Final rank report
+#     # ---------------------------------------------------------
 
-    print()
-    print(
-        "Final rank summary:"
-    )
+#     print()
+#     print(
+#         "Final rank summary:"
+#     )
 
-    summary = pruner.summary()
+#     summary = pruner.summary()
 
-    for name, values in summary.items():
+#     for name, values in summary.items():
 
-        print(
-            f"{name}: "
-            f"active={values['active_rank']} "
-            f"/ maximum={values['maximum_rank']} "
-            f"/ final_pruned="
-            f"{values['final_pruned']}"
-        )
+#         print(
+#             f"{name}: "
+#             f"active={values['active_rank']} "
+#             f"/ maximum={values['maximum_rank']} "
+#             f"/ final_pruned="
+#             f"{values['final_pruned']}"
+#         )
 
-    print()
+#     print()
 
-    print(
-        "Total active rank:",
-        pruner.active_rank(),
-    )
+#     print(
+#         "Total active rank:",
+#         pruner.active_rank(),
+#     )
 
-    print(
-        "Target final total rank:",
-        pruner.target_total_rank(
-            pruner.scheduler.end_step
-        ),
-    )
+#     print(
+#         "Target final total rank:",
+#         pruner.target_total_rank(
+#             pruner.scheduler.end_step
+#         ),
+#     )
 
-    # ---------------------------------------------------------
-    # Validation
-    # ---------------------------------------------------------
+#     # ---------------------------------------------------------
+#     # Validation
+#     # ---------------------------------------------------------
 
-    validation_accuracy = evaluate(
-        model,
-        validation_loader,
-        device,
-    )
+#     validation_accuracy = evaluate(
+#         model,
+#         validation_loader,
+#         device,
+#     )
 
-    print(
-        f"Validation accuracy: "
-        f"{validation_accuracy:.4f}"
-    )
+#     print(
+#         f"Validation accuracy: "
+#         f"{validation_accuracy:.4f}"
+#     )
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
