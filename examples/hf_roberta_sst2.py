@@ -37,7 +37,7 @@ from src.dora.regularization import dem_loss
 # Configuration
 # -------------------------------------------------------------
 
-MODEL_NAME = "roberta-base"
+MODEL_NAME = "distilbert-base-uncased"
 
 MAX_LENGTH = 128
 
@@ -265,11 +265,8 @@ def main():
     # ---------------------------------------------------------
 
     target_keywords = [
-        "query",
-        "key",
-        "value",
-        "output.dense",
-        "intermediate.dense",
+        "q_lin",
+        "v_lin",
     ]
 
     replace_linear_modules(
