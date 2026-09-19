@@ -188,6 +188,7 @@ def load_checkpoint(
     checkpoint = torch.load(
         path,
         map_location="cpu",
+        weights_only=False,
     )
 
     model.load_state_dict(
