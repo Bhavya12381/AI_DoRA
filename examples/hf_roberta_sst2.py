@@ -246,20 +246,15 @@ def load_checkpoint(
 def main():
 
     # ---------------------------------------------------------
-    # Checkpoint storage
+    # Checkpoint storage preflight
     # ---------------------------------------------------------
 
-    try:
-        from google.colab import drive
+    drive_path = Path("/content/drive/MyDrive")
 
-        drive.mount(
-            "/content/drive",
-            force_remount=False,
-        )
-    except ImportError:
-        print(
-            "Google Colab not detected; "
-            "using local checkpoint path."
+    if not drive_path.exists():
+        raise RuntimeError(
+            "Google Drive is not mounted. "
+            "Run drive.mount('/content/drive') in a Colab notebook cell first."
         )
 
     CHECKPOINT_DIR.mkdir(
@@ -267,10 +262,18 @@ def main():
         exist_ok=True,
     )
 
-    print(
-        f"Checkpoint directory: "
-        f"{CHECKPOINT_DIR}"
-    )
+    preflight_path = CHECKPOINT_DIR / ".checkpoint_write_test"
+
+    try:
+        preflight_path.write_text("ok")
+        preflight_path.unlink()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Checkpoint directory is not writable: "
+            f"{CHECKPOINT_DIR}"
+        ) from exc
+
+    print(f"Checkpoint directory ready: {CHECKPOINT_DIR}")
 
     # ---------------------------------------------------------
     # Device
