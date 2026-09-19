@@ -534,6 +534,36 @@ class DynamicRankPruner:
         return self.prune(step)
 
     # ---------------------------------------------------------
+    # Checkpointing
+    # ---------------------------------------------------------
+
+    def state_dict(self):
+        return {
+            "ema_scores": {
+                name: scores.clone()
+                for name, scores in self.ema_scores.items()
+            },
+            "final_mask": {
+                name: mask.clone()
+                for name, mask in self.final_mask.items()
+            },
+            "pruning_finished": self.pruning_finished,
+        }
+
+    def load_state_dict(self, state):
+        if "ema_scores" in state:
+            for name, scores in state["ema_scores"].items():
+                if name in self.ema_scores:
+                    self.ema_scores[name].copy_(scores)
+        
+        if "final_mask" in state:
+            for name, mask in state["final_mask"].items():
+                if name in self.final_mask:
+                    self.final_mask[name].copy_(mask)
+                    
+        self.pruning_finished = state.get("pruning_finished", False)
+
+    # ---------------------------------------------------------
     # Inspection helpers
     # ---------------------------------------------------------
 

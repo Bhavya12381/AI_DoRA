@@ -141,7 +141,7 @@ def save_checkpoint(
     """
 
     checkpoint = {
-        "epoch": epoch,
+        "epoch": epoch + 1,
         "step": step,
 
         "model_state_dict": model.state_dict(),
@@ -162,7 +162,10 @@ def save_checkpoint(
         ),
     }
 
-    torch.save(checkpoint, path)
+    import os
+    temp_path = str(path) + ".tmp"
+    torch.save(checkpoint, temp_path)
+    os.replace(temp_path, path)
 
     print()
     print(f"Checkpoint saved: {path}")
@@ -173,6 +176,7 @@ def load_checkpoint(
     model,
     optimizer,
     pruner,
+    device,
 ):
     """
     Restore model, optimizer, pruner, and RNG state.
@@ -193,6 +197,12 @@ def load_checkpoint(
     optimizer.load_state_dict(
         checkpoint["optimizer_state_dict"]
     )
+
+    # Move optimizer state to device
+    for state in optimizer.state.values():
+        for k, v in state.items():
+            if isinstance(v, torch.Tensor):
+                state[k] = v.to(device)
 
     pruner.load_state_dict(
         checkpoint["pruner_state_dict"]
@@ -223,13 +233,8 @@ def load_checkpoint(
 
     print()
     print(
-        f"Resumed from checkpoint: {path}"
-    )
-    print(
-        f"Next epoch: {start_epoch + 1}"
-    )
-    print(
-        f"Global step: {step}"
+        f"Checkpoint found. Resuming from epoch "
+        f"{start_epoch + 1}, global step {step}."
     )
 
     return start_epoch, step
@@ -521,9 +526,25 @@ def main():
 
     model.train()
 
+    start_epoch = 0
     step = 0
 
-    for epoch in range(NUM_EPOCHS):
+    if CHECKPOINT_PATH.exists():
+        loaded_epoch, step = load_checkpoint(
+            CHECKPOINT_PATH,
+            model,
+            optimizer,
+            pruner,
+            device,
+        )
+        # Checkpoint stores the 1-based completed epoch.
+        # We start from this value (which naturally acts as the next 0-based index).
+        start_epoch = loaded_epoch
+    else:
+        print()
+        print("No checkpoint found. Starting training from epoch 1.")
+
+    for epoch in range(start_epoch, NUM_EPOCHS):
 
         print()
         print(
@@ -608,6 +629,19 @@ def main():
                 )
 
             step += 1
+
+        # ---------------------------------------------------------
+        # Save checkpoint after epoch completes
+        # ---------------------------------------------------------
+        
+        save_checkpoint(
+            CHECKPOINT_PATH,
+            model,
+            optimizer,
+            pruner,
+            epoch,
+            step,
+        )
 
         if step >= TOTAL_STEPS:
             break
