@@ -570,3 +570,45 @@ class DynamicRankPruner:
             }
 
         return result
+
+    def state_dict(self):
+        """
+        Return the dynamic-pruning state required to resume training.
+        """
+        return {
+            "ema_scores": {
+                name: scores.clone()
+                for name, scores in self.ema_scores.items()
+            },
+            "final_mask": {
+                name: mask.clone()
+                for name, mask in self.final_mask.items()
+            },
+            "pruning_finished": self.pruning_finished,
+        }
+
+    def load_state_dict(self, state):
+        """
+        Restore dynamic-pruning state from a checkpoint.
+        """
+        for name, scores in state["ema_scores"].items():
+            if name not in self.ema_scores:
+                raise KeyError(
+                    f"Checkpoint contains unknown EMA score layer: {name}"
+                )
+
+            self.ema_scores[name].copy_(
+                scores.to(self.ema_scores[name].device)
+            )
+
+        for name, mask in state["final_mask"].items():
+            if name not in self.final_mask:
+                raise KeyError(
+                    f"Checkpoint contains unknown final-mask layer: {name}"
+                )
+
+            self.final_mask[name].copy_(
+                mask.to(self.final_mask[name].device)
+            )
+
+        self.pruning_finished = state["pruning_finished"]

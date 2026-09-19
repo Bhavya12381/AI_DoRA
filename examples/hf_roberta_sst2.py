@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+import random
+import numpy as np
 
 # -------------------------------------------------------------
 # Make the project root importable when this file is executed
@@ -72,6 +74,14 @@ PRUNE_INTERVAL = 10
 
 TOTAL_STEPS = None
 
+CHECKPOINT_DIR = Path(
+    "/content/drive/MyDrive/AI_DoRA_checkpoints"
+)
+
+CHECKPOINT_PATH = (
+    CHECKPOINT_DIR / "roberta_sst2_latest.pt"
+)
+
 # -------------------------------------------------------------
 # Evaluation
 # -------------------------------------------------------------
@@ -118,12 +128,144 @@ def evaluate(
 
     return correct / total
 
+def save_checkpoint(
+    path,
+    model,
+    optimizer,
+    pruner,
+    epoch,
+    step,
+):
+    """
+    Save everything required to resume training.
+    """
+
+    checkpoint = {
+        "epoch": epoch,
+        "step": step,
+
+        "model_state_dict": model.state_dict(),
+
+        "optimizer_state_dict": optimizer.state_dict(),
+
+        "pruner_state_dict": pruner.state_dict(),
+
+        # Reproducibility state.
+        "python_rng_state": random.getstate(),
+        "numpy_rng_state": np.random.get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+
+        "cuda_rng_state_all": (
+            torch.cuda.get_rng_state_all()
+            if torch.cuda.is_available()
+            else None
+        ),
+    }
+
+    torch.save(checkpoint, path)
+
+    print()
+    print(f"Checkpoint saved: {path}")
+
+
+def load_checkpoint(
+    path,
+    model,
+    optimizer,
+    pruner,
+):
+    """
+    Restore model, optimizer, pruner, and RNG state.
+
+    Returns:
+        start_epoch, step
+    """
+
+    checkpoint = torch.load(
+        path,
+        map_location="cpu",
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    optimizer.load_state_dict(
+        checkpoint["optimizer_state_dict"]
+    )
+
+    pruner.load_state_dict(
+        checkpoint["pruner_state_dict"]
+    )
+
+    random.setstate(
+        checkpoint["python_rng_state"]
+    )
+
+    np.random.set_state(
+        checkpoint["numpy_rng_state"]
+    )
+
+    torch.set_rng_state(
+        checkpoint["torch_rng_state"]
+    )
+
+    if (
+        torch.cuda.is_available()
+        and checkpoint["cuda_rng_state_all"] is not None
+    ):
+        torch.cuda.set_rng_state_all(
+            checkpoint["cuda_rng_state_all"]
+        )
+
+    start_epoch = checkpoint["epoch"]
+    step = checkpoint["step"]
+
+    print()
+    print(
+        f"Resumed from checkpoint: {path}"
+    )
+    print(
+        f"Next epoch: {start_epoch + 1}"
+    )
+    print(
+        f"Global step: {step}"
+    )
+
+    return start_epoch, step
 
 # -------------------------------------------------------------
 # Main
 # -------------------------------------------------------------
 
 def main():
+
+    # ---------------------------------------------------------
+    # Checkpoint storage
+    # ---------------------------------------------------------
+
+    try:
+        from google.colab import drive
+
+        drive.mount(
+            "/content/drive",
+            force_remount=False,
+        )
+    except ImportError:
+        print(
+            "Google Colab not detected; "
+            "using local checkpoint path."
+        )
+
+    CHECKPOINT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    print(
+        f"Checkpoint directory: "
+        f"{CHECKPOINT_DIR}"
+    )
 
     # ---------------------------------------------------------
     # Device
