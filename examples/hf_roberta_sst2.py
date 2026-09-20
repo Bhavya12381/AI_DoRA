@@ -241,6 +241,131 @@ def load_checkpoint(
     return start_epoch, step
 
 # -------------------------------------------------------------
+# Evaluation entry point
+# -------------------------------------------------------------
+
+def evaluate_checkpoint():
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    print(f"Evaluation checkpoint: {CHECKPOINT_PATH}")
+    print(f"Device: {device}")
+
+    if not CHECKPOINT_PATH.exists():
+        raise RuntimeError(f"Checkpoint not found at {CHECKPOINT_PATH}")
+
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    dataset = load_dataset("nyu-mll/glue", "sst2")
+
+    def tokenize(batch):
+        return tokenizer(
+            batch["sentence"],
+            truncation=True,
+            max_length=MAX_LENGTH,
+        )
+
+    tokenized = dataset.map(tokenize, batched=True)
+
+    if "label" in tokenized["train"].column_names:
+        tokenized = tokenized.rename_column("label", "labels")
+
+    columns_to_remove = [
+        col for col in tokenized["train"].column_names
+        if col not in {"input_ids", "attention_mask", "labels"}
+    ]
+    tokenized = tokenized.remove_columns(columns_to_remove)
+
+    train_dataset = tokenized["train"]
+    validation_dataset = tokenized["validation"]
+
+    collator = DataCollatorWithPadding(tokenizer=tokenizer)
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        collate_fn=collator,
+    )
+    validation_loader = DataLoader(
+        validation_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        collate_fn=collator,
+    )
+
+    total_steps = len(train_loader) * NUM_EPOCHS
+
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME, num_labels=2
+    )
+    freeze_model(model)
+
+    target_names = []
+    for layer_idx in range(12):
+        prefix = f"roberta.encoder.layer.{layer_idx}"
+        target_names.extend([
+            f"{prefix}.attention.self.query",
+            f"{prefix}.attention.self.key",
+            f"{prefix}.attention.self.value",
+            f"{prefix}.attention.output.dense",
+            f"{prefix}.intermediate.dense",
+            f"{prefix}.output.dense",
+        ])
+
+    replace_linear_layers(
+        model,
+        target_names=target_names,
+        rank=INITIAL_RANK,
+        alpha=ALPHA,
+        dropout=DROPOUT,
+    )
+    model.to(device)
+
+    # Dummy optimizer for load_checkpoint requirement
+    optimizer = torch.optim.AdamW(
+        [p for p in model.parameters() if p.requires_grad],
+        lr=LEARNING_RATE,
+    )
+
+    pruner = DynamicRankPruner(
+        model=model,
+        initial_rank=INITIAL_RANK,
+        final_rank=FINAL_RANK,
+        total_steps=total_steps,
+        ema_decay=EMA_DECAY,
+        start_fraction=START_FRACTION,
+        end_fraction=END_FRACTION,
+        prune_interval=PRUNE_INTERVAL,
+    )
+
+    loaded_epoch, step = load_checkpoint(
+        CHECKPOINT_PATH,
+        model,
+        optimizer,
+        pruner,
+        device,
+    )
+
+    print(f"Checkpoint epoch: {loaded_epoch}")
+    print(f"Checkpoint global step: {step}")
+
+    pruner.enforce_final_mask()
+
+    print(f"Total active rank: {pruner.active_rank()}")
+    print(
+        f"Target final total rank: "
+        f"{pruner.target_total_rank(pruner.scheduler.end_step)}"
+    )
+
+    train_acc = evaluate(model, train_loader, device)
+    val_acc = evaluate(model, validation_loader, device)
+
+    print(f"Training accuracy: {train_acc * 100:.2f}%")
+    print(f"Validation accuracy: {val_acc * 100:.2f}%")
+
+
+# -------------------------------------------------------------
 # Main
 # -------------------------------------------------------------
 
@@ -708,4 +833,16 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Run in evaluation mode using the latest checkpoint",
+    )
+    args = parser.parse_args()
+
+    if args.evaluate:
+        evaluate_checkpoint()
+    else:
+        main()
