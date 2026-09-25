@@ -1,0 +1,1063 @@
+% ============================================================
+%  Independent Implementation and Evaluation of Dynamic Rank
+%  Distribution for Parameter-Efficient Fine-Tuning of RoBERTa
+%
+%  Compile with pdfLaTeX on Overleaf.
+%  All figure files are optional: a framed placeholder is
+%  inserted automatically when the PNG is absent.
+% ============================================================
+\documentclass[conference]{IEEEtran}
+
+% ----- Standard IEEE-compatible packages --------------------
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Robust figure placeholder: show framed box if PNG absent
+\usepackage{ifthen}
+\usepackage{fancybox}
+
+% Helper: insert image or a framed placeholder of the same
+% nominal size when the file does not exist.
+% Usage: \figplaceholder{filename}{width}{height}{caption text}
+\newcommand{\figplaceholder}[4]{%
+  \IfFileExists{#1}{%
+    \includegraphics[width=#2]{#1}%
+  }{%
+    \framebox[#2]{\parbox[c][#3][c]{0.85\linewidth}{\centering
+      \small\textbf{[Figure placeholder]}\\[2pt]
+      Filename: \texttt{#1}\\[2pt]
+      #4
+    }}%
+  }%
+}
+
+\begin{document}
+
+% ============================================================
+%  Title and Author
+% ============================================================
+\title{Independent Implementation and Evaluation of Dynamic Rank
+Distribution for Parameter-Efficient Fine-Tuning of RoBERTa}
+
+\author{%
+  \IEEEauthorblockN{[Author Name]}
+  \IEEEauthorblockA{%
+    [Department Name]\\
+    [Institution Name]\\
+    [City, Country]\\
+    [email@institution.edu]
+  }
+}
+
+\maketitle
+
+% ============================================================
+%  Abstract
+% ============================================================
+\begin{abstract}
+Fine-tuning large pretrained language models in their entirety
+imposes significant memory and computational demands, motivating
+a class of approaches termed parameter-efficient fine-tuning
+(PEFT). This report presents an independent educational
+implementation of dynamic rank distribution, a PEFT method
+introduced by Chen et al.\ \cite{chen2024dora}, which augments
+a frozen pretrained model with trainable low-rank components
+and adaptively removes those components that contribute least
+to the learned transformation. The implementation adapts
+RoBERTa-base \cite{liu2019roberta} for binary sentiment
+classification on the Stanford Sentiment Treebank version 2
+(SST-2) dataset \cite{wang2018glue}. Seventy-two linear
+transformations across all twelve encoder layers are replaced
+by rank-3 adaptive modules, giving an initial rank budget of
+216 components across the full network. A cubic pruning
+schedule, informed by component-level importance scores
+accumulated via exponential moving averaging, reduces this
+budget to a target of 144 components over the first half of
+training. A diversity-enhancing mutual-information-inspired
+regularization term is applied throughout to promote
+non-degenerate factor distributions. After sixty training
+epochs, the implementation achieves 99.74\% accuracy on the
+full SST-2 training set and 93.69\% accuracy on the
+validation set, with the final rank budget of 144 matching
+the prescribed target exactly, representing a 33.33\%
+reduction from the initial allocation.
+\end{abstract}
+
+% ============================================================
+%  Index Terms
+% ============================================================
+\begin{IEEEkeywords}
+Parameter-efficient fine-tuning, Transformer, RoBERTa,
+low-rank adaptation, dynamic rank distribution, structured
+pruning, sentiment analysis, regularization, natural language
+processing.
+\end{IEEEkeywords}
+
+% ============================================================
+%  I. Introduction
+% ============================================================
+\section{Introduction}
+
+The proliferation of large pretrained language models such as
+BERT \cite{devlin2019bert}, RoBERTa \cite{liu2019roberta}, and
+GPT-family architectures has transformed natural language
+processing. These models encode broad linguistic knowledge in
+hundreds of millions of parameters acquired during
+unsupervised pretraining on large text corpora. When adapted
+to a downstream task, conventional fine-tuning updates every
+parameter in the network, a strategy that demands substantial
+GPU memory, extended training time, and separate storage of a
+full model copy per task. These costs become prohibitive as
+model scale increases.
+
+Parameter-efficient fine-tuning (PEFT) addresses this by
+keeping pretrained weights frozen and introducing a small
+number of additional trainable parameters. Low-rank adaptation
+(LoRA) \cite{hu2022lora} is among the most widely adopted PEFT
+strategies: it inserts a pair of low-rank matrices alongside
+each target linear transformation, allowing the weight update
+to be learned at a fraction of the original parameter count.
+A key limitation shared by naive low-rank methods is the
+assumption that the same rank allocation is appropriate for
+every layer and every component within a layer. Empirical
+analysis suggests that the information content of different
+linear transformations varies substantially, making uniform
+rank allocation suboptimal.
+
+The DoRA method \cite{chen2024dora} addresses this limitation
+by decomposing each low-rank update into individually gated
+rank-1 components, measuring the relative importance of each
+component throughout training, and progressively removing
+those judged least informative. The final model retains a
+globally optimized, non-uniform rank budget that concentrates
+capacity where it is most needed.
+
+This report documents an independent educational reproduction
+of these ideas. The work does not claim to replicate every
+experimental result of the original publication; rather, it
+aims to implement the core algorithmic components faithfully,
+verify them through unit testing, and evaluate the resulting
+system on a well-understood benchmark. The principal
+contributions of this project are:
+\begin{itemize}
+  \item An independent PyTorch implementation of adaptive
+    rank-1 component decomposition, component importance
+    estimation, exponential moving-average score tracking, a
+    cubic rank-budget schedule, global pruning with
+    deterministic tie-breaking, permanent final masking, and
+    variance-based regularization.
+  \item Integration of the resulting adapter modules into a
+    frozen RoBERTa-base backbone for SST-2 classification.
+  \item A training and evaluation pipeline including
+    checkpointing and automatic resume support.
+  \item Experimental results demonstrating that the dynamic
+    rank pruning process reaches the prescribed final budget
+    of 144 total active components, achieving 93.69\%
+    validation accuracy.
+\end{itemize}
+
+The remainder of the report is structured as follows.
+Section~\ref{sec:background} provides the theoretical
+foundations. Section~\ref{sec:math} presents the mathematical
+formulation. Section~\ref{sec:arch} describes the system
+architecture and implementation. Section~\ref{sec:exp} covers
+the experimental setup. Section~\ref{sec:results} reports the
+experimental outcomes. Section~\ref{sec:discussion} discusses
+the findings. Section~\ref{sec:limitations} identifies
+limitations and future directions. Section~\ref{sec:conclusion}
+concludes the report.
+
+% ============================================================
+%  II. Background and Theoretical Foundations
+% ============================================================
+\section{Background and Theoretical Foundations}
+\label{sec:background}
+
+\subsection{Artificial Intelligence and Machine Learning}
+Artificial intelligence (AI) refers to computational systems
+designed to perform tasks that would otherwise require human
+judgment. Machine learning (ML), a central subdiscipline of
+AI, constructs models that improve their performance on a
+task by learning statistical regularities from data, rather
+than through explicit rule specification \cite{goodfellow2016dl}.
+
+\subsection{Supervised Learning and Binary Classification}
+Supervised learning trains a model on input-output pairs,
+minimizing a loss function that measures disagreement between
+predicted and true outputs. Sentiment analysis on SST-2 is a
+binary classification task: given a movie-review sentence, the
+model must predict one of two classes, positive or negative.
+The model is evaluated by the proportion of correctly
+classified examples, referred to as classification accuracy.
+
+\subsection{Transfer Learning and Pretrained Language Models}
+Training a large model from random initialization on a
+small-scale supervised task is data-inefficient and often
+produces poor generalization. Transfer learning leverages a
+model pretrained on a large general-purpose corpus and
+subsequently adapts it to the target task. Transformer-based
+language models such as BERT \cite{devlin2019bert} and
+RoBERTa \cite{liu2019roberta} are pretrained using
+self-supervised objectives on massive text collections,
+acquiring representations that transfer effectively to diverse
+downstream tasks.
+
+\subsection{The Transformer Architecture}
+The Transformer \cite{vaswani2017attention} is a neural
+network architecture built from stacked blocks, each
+containing a multi-head self-attention sublayer and a
+position-wise feed-forward sublayer. Self-attention computes
+three linear projections of the input sequence, referred to as
+queries ($\mathbf{Q}$), keys ($\mathbf{K}$), and values
+($\mathbf{V}$), and produces a weighted combination of value
+representations guided by the dot-product similarity between
+queries and keys. The feed-forward sublayer applies two
+successive linear transformations separated by a non-linear
+activation function.
+
+In a 12-layer RoBERTa-base encoder, each block contains
+linear projections for the query, key, value, and output of
+the attention mechanism, as well as two projections in the
+feed-forward sublayer, yielding six linear transformations per
+block. Input text is first tokenized into sub-word tokens,
+padded or truncated to a uniform sequence length, and
+accompanied by an attention mask that indicates which token
+positions carry genuine content.
+
+\subsection{Forward Propagation, Loss, and Optimization}
+During a forward pass, the model transforms a batched input
+through all encoder layers to produce class logits. The
+cross-entropy loss measures the disagreement between the
+predicted class distribution and the true one-hot labels.
+Gradients of the loss with respect to all trainable parameters
+are computed via backpropagation and used to update the
+parameters. The AdamW optimizer \cite{loshchilov2019adamw}
+combines adaptive moment estimation with decoupled weight
+decay, and is widely used for Transformer fine-tuning.
+
+\subsection{Parameter-Efficient Fine-Tuning}
+PEFT methods freeze the pretrained weights and introduce a
+small set of trainable parameters. This reduces both memory
+consumption (no need to maintain optimizer states for all
+backbone parameters) and storage overhead (task-specific
+parameters are orders of magnitude smaller than the full
+backbone). LoRA \cite{hu2022lora} achieves this by adding a
+product of two low-rank matrices alongside each target linear
+layer; the pretrained weight is unchanged during fine-tuning.
+
+\subsection{Low-Rank Matrix Factorization and Rank-1 Components}
+A matrix of rank $r$ can be expressed as the sum of $r$
+rank-1 outer products. In the context of PEFT, restricting the
+trainable weight update to a low-rank subspace constrains the
+degrees of freedom available to the optimizer and acts as an
+implicit regularizer. When the update is decomposed into
+individual rank-1 components, each component can be assigned a
+trainable scalar gate that controls its contribution
+independently, enabling fine-grained selection of the
+informative subspace.
+
+\subsection{Importance-Based Pruning and Exponential Moving
+Averages}
+Structured pruning removes entire units (neurons, channels, or
+rank components) from a model based on an importance criterion,
+typically the magnitude of their contribution to the output.
+To reduce sensitivity to instantaneous fluctuations, the
+importance score is accumulated across training steps using an
+exponential moving average (EMA), which smooths the signal by
+weighting recent observations more heavily while retaining
+historical context.
+
+\subsection{Cubic Pruning Schedules}
+A pruning schedule determines when and by how much the rank
+budget should be reduced during training. A cubic schedule
+concentrates the majority of the reduction early in the
+pruning phase (because the cubic function has a steep initial
+slope) while tapering off toward the end, giving the model
+time to adapt to the reduced capacity before pruning is
+finalized.
+
+\subsection{Variance-Based Regularization and Structured
+Sparsity}
+Variance-based regularization penalizes low-variance factor
+matrices, discouraging the collapse of multiple rank-1
+components onto a single dominant direction. This promotes
+diversity among the learned components, which can be
+interpreted as a form of implicit orthogonality enforcement.
+Structured sparsity refers to setting entire units, rather
+than individual weights, to zero; zeroing a scalar gate $c_i$
+renders an entire rank-1 component inactive while leaving its
+underlying parameter tensors intact.
+
+\subsection{Training and Validation Accuracy, Overfitting}
+Training accuracy is the fraction of training examples
+classified correctly by the model evaluated at its final
+state. Validation accuracy measures generalization to unseen
+examples. A substantial gap between the two figures suggests
+overfitting: the model has memorized training-set patterns
+that do not transfer to the validation set. Checkpointing
+saves the complete training state at defined intervals,
+enabling recovery from hardware or software failures without
+discarding the accumulated training progress.
+
+% ============================================================
+%  III. Mathematical Formulation
+% ============================================================
+\section{Mathematical Formulation}
+\label{sec:math}
+
+\subsection{Frozen Pretrained Weights and Adaptive Updates}
+Let $W_0 \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$
+denote the pretrained weight matrix of a linear layer. During
+adapter training, $W_0$ is kept frozen and a trainable low-rank
+residual $\Delta W$ is added:
+\begin{equation}
+  W_{\text{eff}} = W_0 + \Delta W.
+  \label{eq:eff_weight}
+\end{equation}
+The forward computation therefore produces
+$W_{\text{eff}}\,\mathbf{x}$ for any input vector
+$\mathbf{x}$, where the pretrained knowledge is preserved in
+$W_0$ and task-specific adaptation is carried by $\Delta W$.
+
+\subsection{Rank-1 Component Decomposition}
+The weight update is expressed as an explicit sum of
+rank-1 outer products, each controlled by an independent
+trainable scalar gate:
+\begin{equation}
+  \Delta W
+    = \frac{\alpha}{r}\sum_{i=1}^{r} c_i\,
+      \mathbf{b}_i \mathbf{a}_i^{\top},
+  \label{eq:decomp}
+\end{equation}
+where $\mathbf{a}_i \in \mathbb{R}^{d_{\text{in}}}$ is the
+$i$-th row of the input-side factor matrix
+$A \in \mathbb{R}^{r \times d_{\text{in}}}$,
+$\mathbf{b}_i \in \mathbb{R}^{d_{\text{out}}}$ is the $i$-th
+column of the output-side factor matrix
+$B \in \mathbb{R}^{d_{\text{out}} \times r}$,
+$c_i \in \mathbb{R}$ is the $i$-th scalar gate, $r$ is the
+maximum rank, and $\alpha / r$ is an adapter scaling factor.
+This can be written compactly as
+$\Delta W = (\alpha/r)\,B\,\mathrm{diag}(\mathbf{c})\,A$,
+which matches the implementation in \texttt{layer.py}
+(line~194: \texttt{low\_rank * self.scale}, where
+\texttt{scale = alpha / rank}).
+
+\subsection{Adapter Scaling}
+The scalar $\alpha / r$ normalizes the magnitude of the update
+relative to the rank, following the convention established in
+LoRA \cite{hu2022lora}. In the project configuration,
+$\alpha = 2.0$ and $r = 3$, giving a scaling factor of
+$2/3 \approx 0.667$. This value is computed once at
+initialization and stored as \texttt{self.scale}.
+
+\subsection{Forward Computation}
+For an input tensor $X$ of shape
+$[\text{batch}, \text{seq\_len}, d_{\text{in}}]$, the full
+forward pass computes:
+\begin{equation}
+  Y = W_0 X^{\top}
+    + \frac{\alpha}{r}\,\bigl((X\,A^{\top}) \odot
+      \mathbf{c}^{\top}\bigr)\,B^{\top},
+  \label{eq:forward}
+\end{equation}
+where $\odot$ denotes element-wise multiplication applied
+across the rank dimension. Setting $c_i = 0$ eliminates the
+contribution of component $i$ without modifying $A$ or $B$.
+
+\subsection{Component Importance}
+The relative importance of component $i$ within a layer is
+measured by comparing its contribution to the total weight
+update using Frobenius norms:
+\begin{equation}
+  s_i = \frac{\|\Delta W_i\|_F}
+             {\left\|\sum_{j=1}^{r}\Delta W_j\right\|_F + \varepsilon},
+  \label{eq:importance}
+\end{equation}
+where $\Delta W_i = (\alpha/r)\,c_i\,\mathbf{b}_i
+\mathbf{a}_i^{\top}$ is the rank-1 weight matrix of component
+$i$, and $\varepsilon = 10^{-12}$ is a small constant added
+for numerical stability to prevent division by zero when all
+gates are near zero. This formula is implemented in
+\texttt{importance.py}.
+
+\subsection{Exponential Moving Average}
+Raw importance scores computed from the current parameter
+state may be noisy. To obtain a stable estimate, an EMA is
+maintained for each component across training steps:
+\begin{equation}
+  \hat{s}_i(t) = \beta\,\hat{s}_i(t-1)
+               + (1 - \beta)\,s_i(t),
+  \label{eq:ema}
+\end{equation}
+where $\beta = 0.9$ is the decay coefficient. This biases
+the estimate toward the historical average, reducing the
+influence of transient parameter configurations on the
+pruning decisions.
+
+\subsection{Cubic Rank-Budget Schedule}
+Pruning proceeds only within a defined window of training:
+from step $t_{\text{start}}$ to step $t_{\text{end}}$. The
+target average rank per layer at step $t$ is:
+\begin{equation}
+  b(t) = \begin{cases}
+    b_0 & t \leq t_{\text{start}}, \\[4pt]
+    b_0 - (b_0 - b_T)\,\xi^3 & t_{\text{start}} < t < t_{\text{end}}, \\[4pt]
+    b_T & t \geq t_{\text{end}},
+  \end{cases}
+  \label{eq:schedule}
+\end{equation}
+where $b_0$ is the initial average rank per layer, $b_T$ is
+the target final average rank, and
+$\xi = (t - t_{\text{start}}) / (t_{\text{end}} -
+t_{\text{start}}) \in [0, 1]$ is the normalized progress
+within the pruning window. The cubic exponent causes the rank
+to decrease rapidly early in the window and more gradually
+near the end, mirroring the typical convergence behavior
+described in \cite{chen2024dora}. In this project,
+$b_0 = 3$, $b_T = 2$, $t_{\text{start}} = 0.15 \times T$,
+and $t_{\text{end}} = 0.50 \times T$, where $T = 63{,}180$
+total training steps.
+
+\subsection{Global Pruning}
+At each pruning checkpoint, the EMA scores from all adaptive
+layers are concatenated into a single vector of length equal
+to the total number of rank components across the network.
+The target total number of active components $K_t$ is
+computed as $K_t = \lfloor b(t) \times L \rceil$, where $L$
+is the number of adaptive layers. The bottom
+$(K_{\max} - K_t)$ components are identified using
+\texttt{torch.argsort} with \texttt{stable=True}, which
+provides deterministic tie-breaking when multiple components
+share identical scores (such as at initialization when all
+gates are zero). The corresponding scalar gates are set to
+zero, temporarily suppressing those components without
+modifying the underlying $A$ and $B$ tensors.
+
+During the active pruning phase, suppressed components remain
+trainable: gradient descent can restore a gate from zero. At
+the final pruning checkpoint $t_{\text{end}}$, a boolean
+permanent mask is recorded based on which gates are zero,
+and the method \texttt{enforce\_final\_mask()} is called
+immediately after each subsequent optimizer step to re-apply
+this mask, preventing any gradient-driven recovery.
+
+\subsection{DEM Regularization}
+The diversity-enhancing mutual-information (DEM) regularization
+term \cite{chen2024dora} penalizes degenerate factor matrices
+by measuring the unbiased sample variance of each row of $A$
+and each column of $B$:
+\begin{equation}
+  L_{\text{DEM}} =
+    \frac{1}{N_c}\sum_{\ell}\left(
+      \sum_{i=1}^{r}\mathrm{Var}(\mathbf{a}_i^{(\ell)})
+      + \sum_{i=1}^{r}\mathrm{Var}(\mathbf{b}_i^{(\ell)})
+    \right),
+  \label{eq:dem}
+\end{equation}
+where the outer sum is taken over all adaptive layers $\ell$,
+$\mathrm{Var}(\mathbf{a}_i)$ is the unbiased variance of the
+$i$-th row of $A$ (computed over the $d_{\text{in}}$
+elements), $\mathrm{Var}(\mathbf{b}_i)$ is the unbiased
+variance of the $i$-th column of $B$ (computed over the
+$d_{\text{out}}$ elements), and $N_c = 2 r L$ is the total
+count of variance terms across all layers and both factors.
+The combined training objective is:
+\begin{equation}
+  L_{\text{total}} = L_{\text{task}} + \eta\,L_{\text{DEM}},
+  \label{eq:total_loss}
+\end{equation}
+where $L_{\text{task}}$ is the cross-entropy classification
+loss and $\eta = 0.5$ is the regularization coefficient.
+
+% ============================================================
+%  IV. System Architecture and Implementation
+% ============================================================
+\section{System Architecture and Implementation}
+\label{sec:arch}
+
+\subsection{Overall Architecture}
+
+The project is organized as a Python package rooted at
+\texttt{src/dora/} with the following module responsibilities:
+\begin{itemize}
+  \item \texttt{layer.py} — defines \texttt{AdaptiveRankLinear},
+    the core module implementing Eq.~\eqref{eq:decomp}
+    and Eq.~\eqref{eq:forward}.
+  \item \texttt{importance.py} — implements
+    \texttt{component\_importance()} computing
+    Eq.~\eqref{eq:importance}.
+  \item \texttt{scheduler.py} — implements
+    \texttt{CubicBudgetScheduler} computing
+    Eq.~\eqref{eq:schedule}.
+  \item \texttt{pruner.py} — implements
+    \texttt{DynamicRankPruner}, which manages EMA state
+    (Eq.~\eqref{eq:ema}), global pruning, and the final mask.
+  \item \texttt{regularization.py} — implements
+    \texttt{dem\_regularization()} computing
+    Eq.~\eqref{eq:dem} and \texttt{dem\_loss()} computing
+    Eq.~\eqref{eq:total_loss}.
+  \item \texttt{transformer.py} — implements
+    \texttt{freeze\_model()} and
+    \texttt{replace\_linear\_layers()}.
+  \item \texttt{examples/hf\_roberta\_sst2.py} — training
+    script integrating all modules for the RoBERTa/SST-2
+    experiment.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/overall_workflow.png}{0.95\linewidth}{5cm}{%
+    Flowchart: SST-2 dataset $\rightarrow$ tokenizer $\rightarrow$
+    frozen RoBERTa $\rightarrow$ adaptive low-rank layers
+    $\rightarrow$ task loss + DEM regularization
+    $\rightarrow$ optimizer $\rightarrow$ importance
+    calculation $\rightarrow$ EMA $\rightarrow$ cubic
+    pruning $\rightarrow$ final rank distribution
+    $\rightarrow$ evaluation.}
+  \caption{Overall project workflow from raw dataset to
+    final evaluation.}
+  \label{fig:workflow}
+\end{figure}
+
+\subsection{Adaptive Linear Layer}
+
+Each target \texttt{nn.Linear} module is replaced by an
+\texttt{AdaptiveRankLinear} instance that stores three
+trainable parameter groups: matrix $A \in
+\mathbb{R}^{r \times d_{\text{in}}}$, matrix $B \in
+\mathbb{R}^{d_{\text{out}} \times r}$, and scalar gate vector
+$\mathbf{c} \in \mathbb{R}^r$. Both $A$ and $B$ are
+initialized using Kaiming uniform initialization; $\mathbf{c}$
+is initialized to zero, so the adapter contributes no update
+at the start of training. The frozen base weights are stored
+in a separate \texttt{nn.Linear} submodule with
+\texttt{requires\_grad=False}.
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/adaptive_layer.png}{0.95\linewidth}{4.5cm}{%
+    Diagram: frozen $W_0$; trainable $A$, $B$, $c_i$;
+    scaled low-rank residual; combined effective weight.}
+  \caption{Structure of a single \texttt{AdaptiveRankLinear}
+    module.}
+  \label{fig:adaptive_layer}
+\end{figure}
+
+\subsection{RoBERTa Integration and Layer Targeting}
+
+Following \texttt{freeze\_model()}, which sets
+\texttt{requires\_grad=False} on every existing parameter, the
+function \texttt{replace\_linear\_layers()} traverses the
+model's module hierarchy by exact name and substitutes the six
+target linear projections per encoder block. For a 12-layer
+RoBERTa-base model, the six targets per block are:
+\texttt{attention.self.query},
+\texttt{attention.self.key},
+\texttt{attention.self.value},
+\texttt{attention.output.dense},
+\texttt{intermediate.dense}, and
+\texttt{output.dense}.
+This yields $12 \times 6 = 72$ adaptive layers.
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/roberta_adaptation.png}{0.95\linewidth}{5cm}{%
+    Diagram of 12-layer RoBERTa encoder with six adapted
+    linear projections per block: Q, K, V, attention
+    output, intermediate dense, output dense.}
+  \caption{RoBERTa-base adaptation: six linear
+    transformations per encoder block replaced by adaptive
+    rank-1 component layers.}
+  \label{fig:roberta}
+\end{figure}
+
+\subsection{Importance Estimation and EMA Tracking}
+
+After each optimizer step, \texttt{DynamicRankPruner.step()}
+calls \texttt{update\_importance()}, which computes
+$s_i(t)$ for every layer using Eq.~\eqref{eq:importance}
+and updates the stored EMA score using
+Eq.~\eqref{eq:ema}. All EMA scores are maintained on CPU
+as float32 tensors.
+
+\subsection{Global Pruning and Budget Scheduling}
+
+At each pruning checkpoint (every 10 steps within the
+pruning window, plus forcibly at $t_{\text{end}}$), the
+pruner collects EMA scores from all 72 layers into a single
+flat tensor. It computes the required number of active
+components as $K_t = \lfloor b(t) \times 72 \rceil$ and
+determines the number to remove as $K_{\max} - K_t$. Using
+\texttt{torch.argsort} with \texttt{stable=True}, it
+selects the lowest-scoring components and sets their
+corresponding $c_i$ values to zero.
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/dynamic_pruning.png}{0.95\linewidth}{5cm}{%
+    Flowchart: importance calculation $\rightarrow$ EMA
+    smoothing $\rightarrow$ global score collection
+    $\rightarrow$ budget schedule $\rightarrow$ argsort
+    selection $\rightarrow$ temporary gate zeroing
+    $\rightarrow$ final mask at $t_{\text{end}}$.}
+  \caption{Dynamic rank pruning mechanism.}
+  \label{fig:pruning}
+\end{figure}
+
+\subsection{Final Pruning Mask}
+
+At step $t_{\text{end}}$, the boolean tensor recording which
+gates are zero is stored as the final mask per layer.
+Subsequently, \texttt{enforce\_final\_mask()} is called
+immediately after every \texttt{optimizer.step()}, zeroing
+out any gate that the optimizer might have updated away from
+zero. This ensures that the final topology is stable
+throughout the remainder of training. Critically, the
+underlying $A$ and $B$ parameter tensors of pruned components
+are not deleted; only their gates are frozen at zero. Physical
+tensor removal would require post-training restructuring of
+the weight matrices, which is not currently implemented.
+
+\subsection{DEM Regularization in Practice}
+
+The function \texttt{dem\_regularization()} iterates over all
+\texttt{AdaptiveRankLinear} modules, computes
+\texttt{torch.var(layer.A, dim=1, unbiased=True)} (one value
+per row of $A$, i.e., per rank component) and
+\texttt{torch.var(layer.B, dim=0, unbiased=True)} (one value
+per column of $B$), sums all terms, and normalizes by
+$N_c = 2rL = 2 \times 3 \times 72 = 432$. The function is
+differentiable with respect to $A$ and $B$, ensuring that
+gradients flow through the regularization term.
+
+\subsection{Training Pipeline and Checkpointing}
+
+The training loop iterates over mini-batches; for each step
+it performs a forward pass, computes the combined loss
+(Eq.~\eqref{eq:total_loss}), runs backpropagation, applies
+the AdamW optimizer, calls \texttt{pruner.step()}, and
+enforces the final mask. A checkpoint is saved to
+Google Drive after every completed epoch, recording the
+model state dictionary, optimizer state dictionary, pruner
+state (EMA scores, final mask, \texttt{pruning\_finished}
+flag), the completed epoch number, the global step count,
+and the Python, NumPy, and PyTorch RNG states. On restart,
+the script automatically detects the checkpoint and resumes
+training from the following epoch.
+
+\subsection{Training Pseudocode}
+
+Algorithm~\ref{alg:train} summarizes the complete training
+and pruning procedure as implemented.
+
+\begin{algorithm}[t]
+\caption{Dynamic rank adaptation training procedure}
+\label{alg:train}
+\begin{algorithmic}[1]
+\Require Frozen backbone $\Theta_0$, adaptive layers
+  $\{A_\ell, B_\ell, \mathbf{c}_\ell\}_{\ell=1}^{L}$,
+  initial rank $r$, final rank $r_T$, epochs $E$, batch
+  size $B$, learning rate $\eta_0$, DEM coefficient $\eta$,
+  EMA decay $\beta$, pruning start/end fractions
+\Ensure Trained adapters with final rank budget $r_T L$
+\State Initialize all $c_{\ell,i} \leftarrow 0$;
+  $\hat{s}_{\ell,i} \leftarrow 0$
+\State $T \leftarrow$ total training steps; $t \leftarrow 0$
+\For{epoch $= 1$ to $E$}
+  \For{each mini-batch $(X, y)$}
+    \State $\hat{y} \leftarrow$ \textsc{Forward}($X$)
+      \Comment{Eq.~\eqref{eq:forward}}
+    \State $L_{\text{task}} \leftarrow
+      \textsc{CrossEntropy}(\hat{y}, y)$
+    \State $L_{\text{DEM}} \leftarrow
+      \textsc{DemReg}(\{A_\ell, B_\ell\})$
+      \Comment{Eq.~\eqref{eq:dem}}
+    \State $L \leftarrow L_{\text{task}} + \eta\,L_{\text{DEM}}$
+    \State \textsc{Backward}($L$)
+    \State \textsc{AdamW.Step}()
+    \For{each adaptive layer $\ell$}
+      \State $s_{\ell,i}(t) \leftarrow
+        \textsc{Importance}(\ell)$
+        \Comment{Eq.~\eqref{eq:importance}}
+      \State $\hat{s}_{\ell,i}(t) \leftarrow
+        \beta\,\hat{s}_{\ell,i}(t{-}1)
+        + (1{-}\beta)\,s_{\ell,i}(t)$
+        \Comment{Eq.~\eqref{eq:ema}}
+    \EndFor
+    \If{\textsc{ShouldPrune}($t$)}
+      \State Compute $K_t$ from Eq.~\eqref{eq:schedule}
+      \State Sort all $\hat{s}_{\ell,i}$ globally
+      \State Set $c_{\ell,i} \leftarrow 0$ for
+        bottom $(K_{\max} - K_t)$ components
+      \If{$t = t_{\text{end}}$}
+        \State Record permanent mask; set
+          \texttt{pruning\_finished}$= \mathrm{True}$
+      \EndIf
+    \EndIf
+    \If{\texttt{pruning\_finished}}
+      \State \textsc{EnforceFinalMask}()
+    \EndIf
+    \State $t \leftarrow t + 1$
+  \EndFor
+  \State \textsc{SaveCheckpoint}(epoch, $t$, state)
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+% ============================================================
+%  V. Dataset and Experimental Setup
+% ============================================================
+\section{Dataset and Experimental Setup}
+\label{sec:exp}
+
+\subsection{Dataset}
+The Stanford Sentiment Treebank version 2 (SST-2)
+\cite{socher2013recursive}, distributed as part of the GLUE
+benchmark \cite{wang2018glue}, is a binary sentiment
+classification dataset derived from movie reviews. Each
+example consists of a single sentence annotated as either
+positive or negative. The dataset was accessed via the
+Hugging Face \texttt{datasets} library using the identifier
+\texttt{nyu-mll/glue, sst2}. The full training split was
+used for training (TRAIN\_SUBSET\_SIZE was set to
+\texttt{None}, meaning no subset selection was applied),
+and the official validation split was used for evaluation.
+Exact split sizes should be verified against the dataset
+documentation; they are not independently reproduced here.
+
+\subsection{Preprocessing}
+The RoBERTa-base tokenizer was applied to each sentence with
+truncation to a maximum length of 128 sub-word tokens.
+Batches were assembled using \texttt{DataCollatorWithPadding},
+which pads sequences to the length of the longest sequence
+within each batch.
+
+\subsection{Model Configuration}
+RoBERTa-base \cite{liu2019roberta} was loaded from the
+Hugging Face model hub with a sequence classification head
+initialized for two output classes. All pretrained parameters
+were frozen. Adaptive modules with rank $r = 3$ and scaling
+parameter $\alpha = 2.0$ were inserted into the six target
+linear transformations of each of the 12 encoder blocks, for
+a total of 72 adaptive layers and a maximum total rank of
+$72 \times 3 = 216$. Adapter dropout was set to 0.0.
+
+\subsection{Training Hyperparameters}
+
+Table~\ref{tab:hyperparams} lists the full training
+configuration.
+
+\begin{table}[t]
+  \centering
+  \caption{Training configuration}
+  \label{tab:hyperparams}
+  \begin{tabular}{lc}
+    \toprule
+    \textbf{Hyperparameter} & \textbf{Value} \\
+    \midrule
+    Optimizer            & AdamW \\
+    Learning rate        & $8 \times 10^{-4}$ \\
+    Batch size           & 64 \\
+    Number of epochs     & 60 \\
+    Initial rank $r$     & 3 \\
+    Target final rank $r_T$ & 2 \\
+    Scaling $\alpha$     & 2.0 \\
+    Adapter dropout      & 0.0 \\
+    DEM coefficient $\eta$ & 0.5 \\
+    EMA decay $\beta$    & 0.9 \\
+    Pruning start fraction & 0.15 \\
+    Pruning end fraction & 0.50 \\
+    Pruning interval     & 10 steps \\
+    Maximum sequence length & 128 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Pruning Schedule}
+With $T = 63{,}180$ total steps (derived from the training
+set size and batch size), pruning began at step
+$t_{\text{start}} = \lfloor 0.15 \times 63180 \rfloor =
+9{,}477$ and concluded at step
+$t_{\text{end}} = \lfloor 0.50 \times 63180 \rfloor =
+31{,}590$. The target average rank per layer decreased
+from $b_0 = 3$ to $b_T = 2$ over this interval according to
+Eq.~\eqref{eq:schedule}.
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/rank_schedule.png}{0.95\linewidth}{4cm}{%
+    Schematic graph of total rank budget vs.\ training step.
+    Horizontal: flat at 216 before $t_{\text{start}}$;
+    cubic decay from 216 to 144 between $t_{\text{start}}$
+    and $t_{\text{end}}$; flat at 144 thereafter.
+    Note: schematic only; exact per-step values not recorded.}
+  \caption{Schematic of the cubic rank-budget schedule.
+    Exact step-by-step values were not recorded during
+    training and would need to be re-derived from the
+    scheduler for an exact reproduction.}
+  \label{fig:schedule}
+\end{figure}
+
+\subsection{Hardware and Software}
+Training was carried out on an NVIDIA Tesla T4 GPU via Google
+Colab. The software stack comprised PyTorch (version to be
+verified from the training environment), the Hugging Face
+Transformers and Datasets libraries, and Python 3. Software
+version numbers were not logged during training and should be
+confirmed for full reproducibility.
+
+\subsection{Evaluation Protocol}
+After training concluded, the final model checkpoint was
+loaded and the final pruning mask was enforced. The model was
+then evaluated in inference mode (\texttt{model.eval()},
+\texttt{torch.no\_grad()}) on the full training set and on the
+official validation set. Accuracy is defined as the proportion
+of examples for which the argmax of the output logits matches
+the ground-truth label.
+
+% ============================================================
+%  VI. Experimental Results
+% ============================================================
+\section{Experimental Results}
+\label{sec:results}
+
+Table~\ref{tab:results} summarizes the experimental outcomes
+recorded from the final checkpoint.
+
+\begin{table}[t]
+  \centering
+  \caption{Final experimental results}
+  \label{tab:results}
+  \begin{tabular}{lc}
+    \toprule
+    \textbf{Metric} & \textbf{Value} \\
+    \midrule
+    Model                      & RoBERTa-base \\
+    Dataset                    & SST-2 \\
+    Training epochs            & 60 \\
+    Global training steps      & 63,180 \\
+    Initial total rank         & 216 \\
+    Final total active rank    & 144 \\
+    Target final total rank    & 144 \\
+    Training accuracy          & 99.74\% \\
+    Validation accuracy        & 93.69\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Rank Reduction}
+The pruning procedure reduced the total active rank from 216
+to 144, achieving the prescribed target exactly. This
+represents a reduction of 72 components, or 33.33\% of the
+initial budget. Because pruning operates globally rather than
+per-layer, the retained components are distributed
+non-uniformly across the 72 adaptive layers: individual layers
+may retain different numbers of active components depending on
+their measured importance during training. The exact per-layer
+rank distribution is illustrated schematically in
+Fig.~\ref{fig:rank_dist}; precise values would require
+inspection of the \texttt{pruner.summary()} output from the
+saved checkpoint.
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/final_rank_distribution.png}{0.95\linewidth}{4cm}{%
+    Bar chart: active rank (0, 1, 2, or 3) for each of the
+    72 adaptive layers after final pruning. Values should be
+    read from \texttt{pruner.summary()} of the saved
+    checkpoint. Insert actual data before submission.}
+  \caption{Final rank distribution across the 72 adaptive
+    layers. Exact per-layer values must be read from the
+    saved checkpoint and inserted here.}
+  \label{fig:rank_dist}
+\end{figure}
+
+\subsection{Accuracy}
+The model achieved 99.74\% accuracy when evaluated on the
+full SST-2 training set and 93.69\% accuracy on the
+validation set. Both figures were obtained by running the
+evaluation mode (\texttt{--evaluate} flag) of the training
+script against the epoch-60 checkpoint. No epoch-by-epoch
+accuracy curves were recorded; only the final values are
+available.
+
+\begin{figure}[t]
+  \centering
+  \figplaceholder{figures/accuracy_comparison.png}{0.95\linewidth}{3.5cm}{%
+    Bar chart with two bars: Training accuracy 99.74\%
+    and Validation accuracy 93.69\%.}
+  \caption{Final training and validation accuracy on SST-2.}
+  \label{fig:accuracy}
+\end{figure}
+
+% ============================================================
+%  VII. Discussion
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Parameter Efficiency}
+By restricting the trainable weight update to rank-3
+components of selected linear layers, the implementation
+drastically reduces the number of parameters updated during
+fine-tuning relative to full fine-tuning of RoBERTa-base.
+The exact trainable parameter count depends on the
+dimensions of the replaced layers and would need to be
+extracted from the model before stating a precise ratio.
+
+\subsection{Effectiveness of Dynamic Rank Allocation}
+The global pruning budget reached the prescribed target of
+144 components exactly, confirming that the cubic schedule,
+importance scoring, and EMA are working correctly. The
+non-uniform distribution of retained ranks across layers is
+an expected outcome of global selection: layers whose
+components carry more informative gradients naturally retain
+more capacity, while those that converge to near-zero
+contributions are pruned more aggressively.
+
+\subsection{Training and Validation Accuracy Gap}
+The gap between training accuracy (99.74\%) and validation
+accuracy (93.69\%) is approximately 6 percentage points,
+which is consistent with a degree of overfitting. Several
+factors may contribute to this: the learning rate of
+$8 \times 10^{-4}$ is relatively high for Transformer
+fine-tuning; no learning-rate schedule or warm-up was
+applied (based on the configuration described); and no
+dropout was applied in the adapter modules. Establishing the
+precise cause would require additional ablation experiments
+that were not conducted in this study.
+
+It is important to note that a 93.69\% validation accuracy on
+SST-2 is a competitive figure for a PEFT method, and is
+broadly consistent with results reported in the PEFT
+literature for similar adapter configurations. However, no
+controlled baseline experiments (e.g., fixed-rank LoRA, full
+fine-tuning) were performed in this project, so a direct
+quantitative comparison cannot be made.
+
+\subsection{Rank Reduction Versus Physical Compression}
+The implementation represents rank reduction through gate
+zeroing rather than actual tensor deletion. The $A$ and $B$
+matrices of pruned components remain allocated in GPU memory
+and are traversed during the forward pass. Achieving actual
+memory and latency savings would require restructuring the
+weight matrices to exclude the zero-gated components, a step
+not currently implemented. The rank budget therefore measures
+the conceptual sparsity of the adapter, not a directly
+measurable reduction in inference cost.
+
+\subsection{Reproducibility and Checkpointing}
+The checkpoint system proved valuable during the training run:
+the ability to resume from any completed epoch without
+discarding the accumulated training state (including EMA
+scores and the final pruning mask) is critical for long
+multi-epoch runs on transient cloud infrastructure.
+
+% ============================================================
+%  VIII. Limitations and Future Work
+% ============================================================
+\section{Limitations and Future Work}
+\label{sec:limitations}
+
+\subsection{Limitations}
+\begin{itemize}
+  \item \textbf{Single dataset and configuration.} Results are
+    reported only for SST-2 with one specific rank budget.
+    Generalization to other tasks, languages, or model scales
+    cannot be inferred.
+  \item \textbf{Absence of controlled baselines.} No
+    comparison against full fine-tuning, fixed-rank LoRA, or
+    other PEFT methods was performed; relative performance
+    claims are therefore unsubstantiated.
+  \item \textbf{No statistical replication.} A single training
+    run was conducted. Multiple random seeds are required to
+    characterize variance in the results.
+  \item \textbf{Small rank budget.} The target rank of 2 per
+    layer is at the lower end of practical values; behavior
+    at larger budgets is uncharacterized.
+  \item \textbf{Training-validation accuracy gap.} The 6
+    percentage-point gap suggests overfitting; the
+    contributing hyperparameters were not ablated.
+  \item \textbf{No inference efficiency measurements.} GPU
+    memory usage, inference latency, and FLOPs were not
+    measured; claims about deployment efficiency would be
+    speculative.
+  \item \textbf{Soft sparsity only.} Zeroed gates do not
+    reduce physical memory footprint or computation unless
+    followed by tensor restructuring.
+  \item \textbf{No precision, recall, or F1 reporting.} Only
+    accuracy was measured; a complete classification
+    evaluation would include these metrics.
+\end{itemize}
+
+\subsection{Future Work}
+\begin{itemize}
+  \item Conduct baseline experiments using fixed-rank LoRA and
+    full fine-tuning to establish quantitative comparisons.
+  \item Explore multiple rank budgets (e.g., target ranks of
+    1, 2, 4, 8) and measure accuracy against rank.
+  \item Evaluate on additional GLUE benchmarks and other
+    tasks (e.g., question answering, named entity
+    recognition).
+  \item Report precision, recall, F1-score, and confusion
+    matrices.
+  \item Measure GPU memory consumption and wall-clock
+    inference latency before and after pruning.
+  \item Conduct multi-seed experiments to characterize result
+    variance.
+  \item Implement physical tensor compaction of pruned
+    components to realize actual memory and latency savings.
+  \item Apply a learning-rate schedule and warm-up to
+    potentially reduce the training-validation accuracy gap.
+\end{itemize}
+
+% ============================================================
+%  IX. Conclusion
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This report has presented an independent educational
+implementation of the dynamic rank distribution method
+introduced in \cite{chen2024dora}, applied to parameter-
+efficient fine-tuning of RoBERTa-base on the SST-2 binary
+sentiment classification benchmark. The implementation covers
+the full algorithmic pipeline: rank-1 component decomposition
+with scalar gate control, Frobenius-norm importance scoring,
+exponential moving-average score smoothing, a cubic rank-budget
+schedule, global deterministic pruning with permanent final
+masking, and variance-based DEM regularization.
+
+After 60 training epochs totaling 63,180 gradient steps, the
+dynamic pruning procedure successfully reduced the total
+active rank from an initial budget of 216 to the prescribed
+final budget of 144, a reduction of 33.33\%. The final
+checkpoint achieves 99.74\% accuracy on the full SST-2
+training set and 93.69\% on the validation set. The exact
+per-layer rank distribution is non-uniform, reflecting the
+globally optimized pruning decisions guided by component
+importance throughout training.
+
+The project demonstrates that dynamic, importance-guided rank
+allocation can be implemented reliably from first principles
+and integrated with a frozen large pretrained Transformer
+backbone. Future work should extend the evaluation to multiple
+datasets, baselines, and random seeds, and should implement
+physical weight compaction to realize the inference efficiency
+benefits implied by the reduced rank budget.
+
+% ============================================================
+%  References
+% ============================================================
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
