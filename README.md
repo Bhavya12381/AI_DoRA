@@ -291,10 +291,3 @@ as described in the paper.
   per layer. The pruner converts this to a total by multiplying by the number
   of layers, then uses global importance ranking. A layer can therefore retain
   more or fewer than `b(t)` components.
-
----
-
-## License
-
-MIT. This is an educational reimplementation and is not affiliated with the
-original paper authors.
