@@ -6,10 +6,6 @@
 > *"DoRA: Enhancing Parameter-Efficient Fine-Tuning with Dynamic Rank Distribution."*
 > ACL 2024, pages 11662–11675.
 
-This repository is an **original, independent implementation** based on the
-algorithms described in the paper. It does **not** copy, adapt, or translate
-code from the authors' official repository.
-
 ---
 
 ## Purpose
