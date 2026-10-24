@@ -1,0 +1,22 @@
+{
+  "model_name": "roberta-base",
+  "dataset_name": "ag_news",
+  "max_seq_length": 128,
+  "batch_size": 64,
+  "learning_rate": 0.0008,
+  "num_epochs": 60,
+  "seed": 42,
+  "initial_rank": 3,
+  "final_rank": 2,
+  "alpha": 2.0,
+  "dropout": 0.0,
+  "dem_coefficient": 0.5,
+  "ema_decay": 0.9,
+  "pruning_start_fraction": 0.15,
+  "pruning_end_fraction": 0.5,
+  "pruning_interval": 10,
+  "schedule_type": "cubic",
+  "importance_type": "frobenius",
+  "no_ema": false,
+  "train_classifier_head": false
+}
