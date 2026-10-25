@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 
-BASE_CONFIG = {
+# 60-epoch verified baseline configuration
+BASELINE_60_CONFIG = {
     "model_name": "roberta-base",
     "dataset_name": "sst2",
     "max_seq_length": 128,
@@ -24,25 +25,37 @@ BASE_CONFIG = {
     "train_classifier_head": False,
 }
 
+# 30-epoch standard for new exploratory full-scale runs
+EXPLORATORY_30_CONFIG = {
+    **BASELINE_60_CONFIG,
+    "num_epochs": 30,
+}
+
 CONFIGS_DIR = Path("experiments/configs")
 
 
 def create_all_configs():
-    # 1. Rank Sweep
+    # 0. Baseline 60-Epoch Configuration (Preserved)
+    baseline_dir = CONFIGS_DIR / "baseline"
+    baseline_dir.mkdir(parents=True, exist_ok=True)
+    with open(baseline_dir / "roberta_sst2_60epochs.json", "w") as f:
+        json.dump(BASELINE_60_CONFIG, f, indent=2)
+
+    # 1. Rank Sweep (30 epochs exploratory standard)
     rank_configs = {
         "r2_to_1": {"initial_rank": 2, "final_rank": 1},
-        "r3_to_2": {"initial_rank": 3, "final_rank": 2}, # baseline
+        "r3_to_2": {"initial_rank": 3, "final_rank": 2},
         "r4_to_2": {"initial_rank": 4, "final_rank": 2},
         "r4_to_1": {"initial_rank": 4, "final_rank": 1},
         "r8_to_2": {"initial_rank": 8, "final_rank": 2},
     }
     for name, overrides in rank_configs.items():
-        cfg = {**BASE_CONFIG, **overrides}
+        cfg = {**EXPLORATORY_30_CONFIG, **overrides}
         p = CONFIGS_DIR / "rank_sweep" / f"{name}.json"
         with open(p, "w") as f:
             json.dump(cfg, f, indent=2)
 
-    # 2. Ablations
+    # 2. Ablations (30 epochs exploratory standard)
     ablation_configs = {
         "importance_random": {"importance_type": "random"},
         "importance_magnitude": {"importance_type": "magnitude"},
@@ -53,24 +66,24 @@ def create_all_configs():
         "regularization_dem_10": {"dem_coefficient": 1.0},
     }
     for name, overrides in ablation_configs.items():
-        cfg = {**BASE_CONFIG, **overrides}
+        cfg = {**EXPLORATORY_30_CONFIG, **overrides}
         p = CONFIGS_DIR / "ablations" / f"{name}.json"
         with open(p, "w") as f:
             json.dump(cfg, f, indent=2)
 
-    # 3. Datasets
+    # 3. Datasets (30 epochs exploratory standard)
     dataset_configs = {
         "dataset_sst2": {"dataset_name": "sst2"},
-        "dataset_imdb": {"dataset_name": "imdb"},
+        "dataset_imdb": {"dataset_name": "imdb", "max_seq_length": 256, "batch_size": 32},
         "dataset_agnews": {"dataset_name": "ag_news"},
     }
     for name, overrides in dataset_configs.items():
-        cfg = {**BASE_CONFIG, **overrides}
+        cfg = {**EXPLORATORY_30_CONFIG, **overrides}
         p = CONFIGS_DIR / "datasets" / f"{name}.json"
         with open(p, "w") as f:
             json.dump(cfg, f, indent=2)
 
-    # 4. Models
+    # 4. Models (30 epochs exploratory standard)
     model_configs = {
         "model_roberta_base": {"model_name": "roberta-base"},
         "model_distilroberta_base": {"model_name": "distilroberta-base"},
@@ -78,12 +91,14 @@ def create_all_configs():
         "model_distilbert_base": {"model_name": "distilbert-base-uncased"},
     }
     for name, overrides in model_configs.items():
-        cfg = {**BASE_CONFIG, **overrides}
+        cfg = {**EXPLORATORY_30_CONFIG, **overrides}
         p = CONFIGS_DIR / "models" / f"{name}.json"
         with open(p, "w") as f:
             json.dump(cfg, f, indent=2)
 
     print("All experiment configurations created successfully in experiments/configs/.")
+    print(" - Baseline 60-epoch: experiments/configs/baseline/roberta_sst2_60epochs.json")
+    print(" - Exploratory 30-epoch: rank_sweep, ablations, datasets, models")
 
 
 if __name__ == "__main__":

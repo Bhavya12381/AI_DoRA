@@ -6,7 +6,7 @@ import json
 import csv
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 # Add project root to sys.path
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import torch
+import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 from src.dora.models import setup_adapted_model, detect_model_family
@@ -59,15 +60,18 @@ def evaluate_model(
 def parse_args():
     parser = argparse.ArgumentParser(description="Configurable DoRA Experiment Runner")
 
+    # Configuration file
+    parser.add_argument("--config", type=str, default=None, help="Path to JSON configuration file")
+
     # Model and Data
     parser.add_argument("--model_name", type=str, default="roberta-base")
     parser.add_argument("--dataset_name", type=str, default="sst2")
     parser.add_argument("--max_seq_length", type=int, default=128)
     parser.add_argument("--batch_size", type=int, default=64)
 
-    # Optimization
+    # Optimization (30 epochs default for exploratory campaigns)
     parser.add_argument("--learning_rate", type=float, default=8e-4)
-    parser.add_argument("--num_epochs", type=int, default=60)
+    parser.add_argument("--num_epochs", type=int, default=30)
     parser.add_argument("--seed", type=int, default=42)
 
     # Adapter and Pruning Hyperparameters
@@ -103,6 +107,18 @@ def parse_args():
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--experiment_id", type=str, default=None)
 
+    # Parse initial args to check for --config
+    initial_args, remaining = parser.parse_known_args()
+    if initial_args.config:
+        config_path = Path(initial_args.config)
+        if config_path.is_file():
+            logger.info(f"Loading experiment configuration from {config_path}")
+            with open(config_path, "r") as f:
+                config_data = json.load(f)
+            parser.set_defaults(**config_data)
+        else:
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+
     return parser.parse_args()
 
 
@@ -128,7 +144,7 @@ def run_experiment(args):
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     exp_id = args.experiment_id or (
         f"{args.model_name.replace('/', '_')}_{args.dataset_name}_"
-        f"r{args.initial_rank}to{args.final_rank}_{args.schedule_type}_{args.importance_type}_"
+        f"e{args.num_epochs}_r{args.initial_rank}to{args.final_rank}_{args.schedule_type}_{args.importance_type}_"
         f"{timestamp}"
     )
 
@@ -201,10 +217,21 @@ def run_experiment(args):
         use_ema=use_ema,
     )
 
-    # 4. Resume Checkpoint Handling
+    # Log pruning schedule parameters explicitly
+    start_step = pruner.scheduler.start_step
+    end_step = pruner.scheduler.end_step
+    logger.info(
+        f"Schedule Configuration: {args.num_epochs} epochs | {total_steps} total steps | "
+        f"Warmup: steps 0 to {start_step} ({args.pruning_start_fraction*100:.1f}%) | "
+        f"Pruning window: steps {start_step} to {end_step} ({args.pruning_end_fraction*100:.1f}%) | "
+        f"Fixed budget: steps {end_step} to {total_steps} (Final total rank: {pruner.target_total_rank(total_steps)})"
+    )
+
+    # 4. Resume Checkpoint Handling & Validation History
     start_epoch = 0
     global_step = 0
     best_eval_acc = 0.0
+    val_history: List[Dict[str, Any]] = []
 
     if args.resume_from_checkpoint:
         logger.info(f"Loading checkpoint from {args.resume_from_checkpoint}...")
@@ -218,6 +245,16 @@ def run_experiment(args):
         start_epoch = ckpt_meta.get("epoch", 0)
         global_step = ckpt_meta.get("global_step", 0)
         best_eval_acc = ckpt_meta.get("metrics", {}).get("accuracy", 0.0)
+
+        # Attempt to load existing validation history
+        history_path = checkpoint_dir / "val_metrics.json"
+        if history_path.exists():
+            try:
+                with open(history_path, "r") as f:
+                    val_history = json.load(f)
+                logger.info(f"Loaded {len(val_history)} prior validation metric records.")
+            except Exception as e:
+                logger.warning(f"Could not load prior validation history: {e}")
 
     # 5. Evaluate-only Mode
     if args.evaluate_only:
@@ -236,11 +273,16 @@ def run_experiment(args):
             "mode": "evaluate_only",
             "model_name": args.model_name,
             "dataset_name": args.dataset_name,
+            "num_epochs": args.num_epochs,
+            "completed_epochs": start_epoch,
+            "total_steps": global_step,
             "train_accuracy": train_metrics["accuracy"],
             "eval_accuracy": eval_metrics["accuracy"],
             "eval_macro_f1": eval_metrics.get("macro_f1", 0.0),
+            "eval_weighted_f1": eval_metrics.get("weighted_f1", 0.0),
             "initial_total_rank": pruner.maximum_rank(),
             "final_active_rank": active_rank,
+            "per_layer_active_rank": {name: layer.active_rank() for name, layer in pruner._adaptive_layers()},
             "eval_metrics": eval_metrics,
             "train_metrics": train_metrics,
         }
@@ -280,20 +322,42 @@ def run_experiment(args):
             epoch_dem += dem_val
             global_step += 1
 
-        # End of epoch evaluation
+        # End-of-epoch evaluation & detailed validation logging
         eval_metrics = evaluate_model(model, eval_loader, device)
         cur_acc = eval_metrics["accuracy"]
+        cur_macro_f1 = eval_metrics.get("macro_f1", 0.0)
+        cur_weighted_f1 = eval_metrics.get("weighted_f1", 0.0)
         is_best = cur_acc > best_eval_acc
         if is_best:
             best_eval_acc = cur_acc
 
+        val_entry = {
+            "epoch": epoch + 1,
+            "global_step": global_step,
+            "train_loss": round(epoch_loss / max(1, len(train_loader)), 4),
+            "dem_loss": round(epoch_dem / max(1, len(train_loader)), 4),
+            "eval_accuracy": round(cur_acc, 4),
+            "eval_macro_f1": round(cur_macro_f1, 4),
+            "eval_weighted_f1": round(cur_weighted_f1, 4),
+            "active_rank": pruner.active_rank(),
+            "maximum_rank": pruner.maximum_rank(),
+            "is_best": is_best,
+        }
+        val_history.append(val_entry)
+
+        # Persist epoch-by-epoch validation history
+        with open(checkpoint_dir / "val_metrics.json", "w") as f:
+            json.dump(val_history, f, indent=2)
+        pd.DataFrame(val_history).to_csv(checkpoint_dir / "val_metrics.csv", index=False)
+
         logger.info(
-            f"Epoch {epoch+1}/{args.num_epochs} | Step {global_step}/{total_steps} | "
-            f"Eval Acc: {cur_acc*100:.2f}% (Best: {best_eval_acc*100:.2f}%) | "
-            f"Active Rank: {pruner.active_rank()}/{pruner.maximum_rank()}"
+            f"Epoch {epoch+1:2d}/{args.num_epochs} | Step {global_step:5d}/{total_steps} | "
+            f"Eval Acc: {cur_acc*100:6.2f}% (Best: {best_eval_acc*100:6.2f}%) | "
+            f"Macro-F1: {cur_macro_f1*100:5.2f}% | "
+            f"Active Rank: {pruner.active_rank():3d}/{pruner.maximum_rank()}"
         )
 
-        # Save checkpoint
+        # Save checkpoint (model_latest.pt every epoch; model_best.pt when is_best=True)
         save_checkpoint(
             checkpoint_dir=checkpoint_dir,
             filename="model_latest.pt",
@@ -308,13 +372,14 @@ def run_experiment(args):
         )
 
     t_training_duration = time.time() - t_start_training
-    logger.info(f"Training completed in {t_training_duration:.2f}s")
+    logger.info(f"Training completed in {t_training_duration:.2f}s ({t_training_duration/60:.2f} min)")
 
     # 7. Final Comprehensive Evaluation
     pruner.enforce_final_mask()
     final_eval_metrics = evaluate_model(model, eval_loader, device)
     final_train_metrics = evaluate_model(model, train_loader, device)
     final_active_rank = pruner.active_rank()
+    per_layer_rank = {name: layer.active_rank() for name, layer in pruner._adaptive_layers()}
 
     # 8. Physical Compaction & Equivalence Check
     compact_summary = {}
@@ -361,6 +426,9 @@ def run_experiment(args):
         "timestamp": timestamp,
         "model_name": args.model_name,
         "dataset_name": args.dataset_name,
+        "num_epochs": args.num_epochs,
+        "completed_epochs": args.num_epochs,
+        "total_steps": global_step,
         "initial_rank": args.initial_rank,
         "final_rank": args.final_rank,
         "initial_total_rank": pruner.maximum_rank(),
@@ -368,11 +436,10 @@ def run_experiment(args):
         "rank_reduction_percent": (1.0 - (final_active_rank / pruner.maximum_rank())) * 100.0,
         "train_accuracy": final_train_metrics["accuracy"],
         "eval_accuracy": final_eval_metrics["accuracy"],
+        "best_eval_accuracy": best_eval_acc,
         "eval_macro_f1": final_eval_metrics.get("macro_f1", 0.0),
         "eval_weighted_f1": final_eval_metrics.get("weighted_f1", 0.0),
         "training_duration_seconds": round(t_training_duration, 2),
-        "total_steps": global_step,
-        "num_epochs": args.num_epochs,
         "batch_size": args.batch_size,
         "learning_rate": args.learning_rate,
         "alpha": args.alpha,
@@ -385,6 +452,8 @@ def run_experiment(args):
         "train_samples": data_meta["train_samples"],
         "eval_samples": data_meta["eval_samples"],
         "device": str(device),
+        "per_layer_active_rank": per_layer_rank,
+        "validation_history": val_history,
         "param_info": param_info,
         "compact_summary": compact_summary,
         "benchmark_records": benchmark_records,
@@ -395,6 +464,21 @@ def run_experiment(args):
     with open(json_path, "w") as f:
         json.dump(final_record, f, indent=2)
     logger.info(f"Experiment results saved to {json_path}")
+
+    # Summary table output
+    logger.info("=" * 60)
+    logger.info("EXPERIMENT SUMMARY REPORT")
+    logger.info("=" * 60)
+    logger.info(f"Experiment ID:        {exp_id}")
+    logger.info(f"Completed Epochs:     {args.num_epochs}")
+    logger.info(f"Training Time:        {t_training_duration:.2f}s ({t_training_duration/60:.2f} min)")
+    logger.info(f"Final Train Accuracy: {final_train_metrics['accuracy']*100:.2f}%")
+    logger.info(f"Final Eval Accuracy:  {final_eval_metrics['accuracy']*100:.2f}%")
+    logger.info(f"Best Eval Accuracy:   {best_eval_acc*100:.2f}%")
+    logger.info(f"Eval Macro-F1:        {final_eval_metrics.get('macro_f1', 0.0)*100:.2f}%")
+    logger.info(f"Eval Weighted-F1:     {final_eval_metrics.get('weighted_f1', 0.0)*100:.2f}%")
+    logger.info(f"Active Rank:          {final_active_rank} / {pruner.maximum_rank()} ({final_record['rank_reduction_percent']:.1f}% reduction)")
+    logger.info("=" * 60)
 
     return final_record
 
