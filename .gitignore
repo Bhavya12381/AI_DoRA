@@ -16,6 +16,7 @@ ENV/
 *.ckpt
 checkpoints/
 experiments/checkpoints/
+experiments/logs/
 
 # Temporary / cache files
 *.tmp

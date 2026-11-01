@@ -104,6 +104,7 @@ def parse_args():
     # Paths
     parser.add_argument("--output_dir", type=str, default="experiments/results")
     parser.add_argument("--checkpoint_dir", type=str, default="experiments/checkpoints")
+    parser.add_argument("--log_dir", type=str, default=None, help="Directory to save execution log file")
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--experiment_id", type=str, default=None)
 
@@ -140,18 +141,36 @@ def run_experiment(args):
         args.batch_size = min(args.batch_size, 16)
         args.pruning_interval = 2
 
-    # Generate experiment ID
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    exp_id = args.experiment_id or (
-        f"{args.model_name.replace('/', '_')}_{args.dataset_name}_"
-        f"e{args.num_epochs}_r{args.initial_rank}to{args.final_rank}_{args.schedule_type}_{args.importance_type}_"
-        f"{timestamp}"
-    )
+    # Determine experiment ID and checkpoint directory
+    if args.resume_from_checkpoint:
+        resume_path = Path(args.resume_from_checkpoint)
+        if not args.experiment_id:
+            exp_id = resume_path.parent.name
+            checkpoint_dir = resume_path.parent
+        else:
+            exp_id = args.experiment_id
+            checkpoint_dir = Path(args.checkpoint_dir) / exp_id
+    else:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        exp_id = args.experiment_id or (
+            f"{args.model_name.replace('/', '_')}_{args.dataset_name}_"
+            f"e{args.num_epochs}_r{args.initial_rank}to{args.final_rank}_{args.schedule_type}_{args.importance_type}_"
+            f"{timestamp}"
+        )
+        checkpoint_dir = Path(args.checkpoint_dir) / exp_id
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint_dir = Path(args.checkpoint_dir) / exp_id
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    # Optional file logging
+    if args.log_dir:
+        log_dir = Path(args.log_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_dir / f"{exp_id}.log", mode="a", encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S"))
+        logging.getLogger().addHandler(file_handler)
+        logger.info(f"Logging execution output to {log_dir / f'{exp_id}.log'}")
 
     # 1. Tokenizer and Data
     logger.info(f"Loading tokenizer for '{args.model_name}' and dataset '{args.dataset_name}'...")
@@ -252,7 +271,9 @@ def run_experiment(args):
             try:
                 with open(history_path, "r") as f:
                     val_history = json.load(f)
-                logger.info(f"Loaded {len(val_history)} prior validation metric records.")
+                # Keep only history records up to start_epoch
+                val_history = [e for e in val_history if e.get("epoch", 0) <= start_epoch]
+                logger.info(f"Loaded {len(val_history)} prior validation metric records up to epoch {start_epoch}.")
             except Exception as e:
                 logger.warning(f"Could not load prior validation history: {e}")
 

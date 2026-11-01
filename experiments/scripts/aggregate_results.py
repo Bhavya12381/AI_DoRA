@@ -157,4 +157,8 @@ def aggregate_experiment_results(results_dir: str = "experiments/results"):
 
 
 if __name__ == "__main__":
-    aggregate_experiment_results()
+    import argparse
+    parser = argparse.ArgumentParser(description="Aggregate AI_DoRA Experiment Results")
+    parser.add_argument("--results_dir", type=str, default="experiments/results", help="Directory containing experiment JSON results")
+    args = parser.parse_args()
+    aggregate_experiment_results(results_dir=args.results_dir)

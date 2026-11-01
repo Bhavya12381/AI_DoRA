@@ -271,7 +271,12 @@ def save_compact_adapter(
 
     tmp_path = str(path) + ".tmp"
     torch.save(checkpoint, tmp_path)
-    os.replace(tmp_path, path)
+    try:
+        os.replace(tmp_path, path)
+    except OSError:
+        if os.path.exists(path):
+            os.remove(path)
+        os.replace(tmp_path, path)
 
 
 def measure_model_parameter_stats(model: nn.Module) -> Dict[str, Any]:

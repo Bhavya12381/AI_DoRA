@@ -76,14 +76,24 @@ def save_checkpoint(
 
     temp_path = checkpoint_dir / f"{filename}.tmp"
     torch.save(state, temp_path)
-    os.replace(temp_path, target_path)
+    try:
+        os.replace(temp_path, target_path)
+    except OSError:
+        if target_path.exists():
+            target_path.unlink()
+        os.replace(temp_path, target_path)
     logger.info(f"Checkpoint saved successfully to {target_path}")
 
     if is_best:
         best_path = checkpoint_dir / "model_best.pt"
         best_temp = checkpoint_dir / "model_best.pt.tmp"
         torch.save(state, best_temp)
-        os.replace(best_temp, best_path)
+        try:
+            os.replace(best_temp, best_path)
+        except OSError:
+            if best_path.exists():
+                best_path.unlink()
+            os.replace(best_temp, best_path)
         logger.info(f"Updated best checkpoint at {best_path}")
 
     return target_path
