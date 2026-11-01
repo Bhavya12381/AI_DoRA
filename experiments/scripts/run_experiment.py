@@ -29,6 +29,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     datefmt="%m/%d/%Y %H:%M:%S",
     level=logging.INFO,
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger("run_experiment")
 
@@ -95,6 +96,7 @@ def parse_args():
     parser.add_argument("--smoke_test", action="store_true", help="Run quick 1-epoch subset smoke test")
     parser.add_argument("--max_train_samples", type=int, default=None)
     parser.add_argument("--max_eval_samples", type=int, default=None)
+    parser.add_argument("--log_interval", type=int, default=50, help="Print progress every N training steps")
 
     # Execution Modes
     parser.add_argument("--evaluate_only", action="store_true", help="Evaluate checkpoint without retraining")
@@ -140,6 +142,7 @@ def run_experiment(args):
         args.max_eval_samples = args.max_eval_samples or 50
         args.batch_size = min(args.batch_size, 16)
         args.pruning_interval = 2
+        args.log_interval = min(args.log_interval, 5)
 
     # Determine experiment ID and checkpoint directory
     if args.resume_from_checkpoint:
@@ -343,6 +346,16 @@ def run_experiment(args):
             epoch_dem += dem_val
             global_step += 1
 
+            # Step-level progress logging
+            if (step_idx + 1) % args.log_interval == 0 or (step_idx + 1) == len(train_loader):
+                avg_batch_loss = epoch_loss / (step_idx + 1)
+                logger.info(
+                    f"Epoch {epoch+1:2d}/{args.num_epochs} | Step {step_idx+1:4d}/{len(train_loader)} "
+                    f"(Global {global_step:5d}/{total_steps}) | Loss: {loss.item():.4f} (Avg: {avg_batch_loss:.4f}) | "
+                    f"DEM: {dem_val:.6f} | Active Rank: {pruner.active_rank():3d}/{pruner.maximum_rank()}"
+                )
+                sys.stdout.flush()
+
         # End-of-epoch evaluation & detailed validation logging
         eval_metrics = evaluate_model(model, eval_loader, device)
         cur_acc = eval_metrics["accuracy"]
@@ -372,11 +385,12 @@ def run_experiment(args):
         pd.DataFrame(val_history).to_csv(checkpoint_dir / "val_metrics.csv", index=False)
 
         logger.info(
-            f"Epoch {epoch+1:2d}/{args.num_epochs} | Step {global_step:5d}/{total_steps} | "
+            f"Epoch {epoch+1:2d}/{args.num_epochs} COMPLETED | Step {global_step:5d}/{total_steps} | "
             f"Eval Acc: {cur_acc*100:6.2f}% (Best: {best_eval_acc*100:6.2f}%) | "
             f"Macro-F1: {cur_macro_f1*100:5.2f}% | "
             f"Active Rank: {pruner.active_rank():3d}/{pruner.maximum_rank()}"
         )
+        sys.stdout.flush()
 
         # Save checkpoint (model_latest.pt every epoch; model_best.pt when is_best=True)
         save_checkpoint(
