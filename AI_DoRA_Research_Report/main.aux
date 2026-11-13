@@ -1,0 +1,118 @@
+\relax 
+\citation{devlin2019bert}
+\citation{liu2019roberta}
+\citation{goodfellow2016dl}
+\citation{hu2022lora}
+\citation{chen2024dora}
+\citation{chen2024dora}
+\citation{socher2013recursive,wang2018glue}
+\citation{loshchilov2019adamw}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\newlabel{sec:intro}{{I}{1}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Theoretical Background and Related Work}{1}{}\protected@file@percent }
+\newlabel{sec:background}{{II}{1}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Parameter-Efficient Fine-Tuning and LoRA}{1}{}\protected@file@percent }
+\citation{hu2022lora}
+\citation{liu2024dora}
+\citation{chen2024dora}
+\citation{zhang2023adalora}
+\citation{valipour2023dylora}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces High-level architectural workflow of the implemented AI\_DoRA framework, from raw text ingestion and tokenization through adaptive transformer execution, regularization, cubic budget pruning, and post-training compact deployment.}}{2}{}\protected@file@percent }
+\newlabel{fig:workflow}{{1}{2}{}{}{}}
+\newlabel{eq:lora}{{1}{2}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Distinction: Magnitude-Direction DoRA vs. Dynamic Rank DoRA}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Adaptive Rank Methods}{2}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Architecture of the implemented \texttt  {AdaptiveRankLinear} module. The frozen pretrained projection $W_0$ operates in parallel with the gated rank-1 low-rank adapter path.}}{2}{}\protected@file@percent }
+\newlabel{fig:adaptive_layer}{{2}{2}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}Implemented AI\_DoRA Framework}{2}{}\protected@file@percent }
+\newlabel{sec:framework}{{III}{2}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Adaptive Linear Layer Architecture}{2}{}\protected@file@percent }
+\citation{chen2024dora}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Adaptation of a RoBERTa-base encoder block. All six core linear transformations (query, key, value, attention output, intermediate dense, and output dense) are substituted with \texttt  {AdaptiveRankLinear} modules.}}{3}{}\protected@file@percent }
+\newlabel{fig:roberta_adaptation}{{3}{3}{}{}{}}
+\newlabel{eq:forward}{{2}{3}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Transformer Integration and Layer Targeting}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Component Importance and EMA Smoothing}{3}{}\protected@file@percent }
+\newlabel{eq:importance}{{3}{3}{}{}{}}
+\newlabel{eq:ema}{{4}{3}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Dynamic rank pruning pipeline: importance computation, EMA filtering, cubic budget evaluation, global component ranking, and permanent boolean mask locking.}}{3}{}\protected@file@percent }
+\newlabel{fig:pruning}{{4}{3}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Cubic Budget Schedule and Structured Pruning}{3}{}\protected@file@percent }
+\newlabel{eq:schedule}{{5}{3}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-E}}Diversity-Enhancing Mutual-Information (DEM) Regularization}{3}{}\protected@file@percent }
+\newlabel{eq:loss}{{6}{3}{}{}{}}
+\newlabel{eq:dem}{{7}{3}{}{}{}}
+\citation{socher2013recursive,wang2018glue}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Training configuration for verified 60-epoch baseline}}{4}{}\protected@file@percent }
+\newlabel{tab:hyperparams}{{I}{4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-F}}Physical Compact Adapter Export}{4}{}\protected@file@percent }
+\newlabel{eq:compact}{{8}{4}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Experimental Setup and Verification}{4}{}\protected@file@percent }
+\newlabel{sec:setup}{{IV}{4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Dataset and Preprocessing}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Hyperparameter Configuration}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Hardware and Software Infrastructure}{4}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Verified 60-epoch RoBERTa-base / SST-2 experimental results}}{4}{}\protected@file@percent }
+\newlabel{tab:baseline_results}{{II}{4}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Results and Analysis}{4}{}\protected@file@percent }
+\newlabel{sec:results}{{V}{4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Software Pipeline Validation (Smoke Tests)}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Verified 60-Epoch Baseline Experiment}{4}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Final training (99.74\%) and validation (93.69\%) accuracy achieved by the 60-epoch DoRA RoBERTa-base model on SST-2.}}{5}{}\protected@file@percent }
+\newlabel{fig:accuracy}{{5}{5}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Cubic rank budget decay schedule as a function of training step. The budget remains flat at 216 before $t_{\text  {start}}$, decays cubically to 144 between $t_{\text  {start}}$ and $t_{\text  {end}}$, and locks permanently thereafter.}}{5}{}\protected@file@percent }
+\newlabel{fig:rank_schedule}{{6}{5}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Physical Compact Export Validation}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Inference Latency and Efficiency Benchmarking}{5}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Final active rank distribution across all 72 adapted linear layers. Non-uniform retention reflects differential layer importance, summing exactly to the prescribed global budget of 144.}}{5}{}\protected@file@percent }
+\newlabel{fig:final_rank_dist}{{7}{5}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces CPU inference latency and throughput benchmark results}}{5}{}\protected@file@percent }
+\newlabel{tab:benchmarks}{{III}{5}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-E}}Multi-Model Baseline Validation}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Proposed Dynamic Rank Reallocation Framework}{5}{}\protected@file@percent }
+\newlabel{sec:reallocation}{{VI}{5}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Motivation and Problem Formulation}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Dual-Signal Utility Formulation}{6}{}\protected@file@percent }
+\newlabel{eq:signal_d}{{9}{6}{}{}{}}
+\newlabel{eq:signal_g}{{10}{6}{}{}{}}
+\newlabel{eq:utility}{{13}{6}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Parameter-Aware Dimensional Cost}{6}{}\protected@file@percent }
+\newlabel{eq:cost_utility}{{14}{6}{}{}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Budget-Constrained Dynamic Rank Reallocation}}{6}{}\protected@file@percent }
+\newlabel{alg:reallocation}{{1}{6}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Donor-Recipient Selection and Rank Transfer}{6}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Budget Conservation and Stability Safeguards}{6}{}\protected@file@percent }
+\newlabel{eq:invariant}{{17}{6}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Architectural overview of the proposed Budget-Constrained Dynamic Rank Reallocation Framework: dual-signal evaluation ($D_l$ and $G_l$), parameter cost weighting, threshold-gated donor/recipient selection, and budget-conserving rank transfers.}}{7}{}\protected@file@percent }
+\newlabel{fig:proposed_reallocation}{{8}{7}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Atomic rank transfer step: deactivating the least important component in donor layer $l_{\text  {don}}$ and activating a re-initialized component in recipient layer $l_{\text  {rec}}$, preserving $\DOTSB \sum@ \slimits@ _l r_l = B_t$.}}{7}{}\protected@file@percent }
+\newlabel{fig:transfer_mechanism}{{9}{7}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Proposed Experimental Evaluation Plan}{7}{}\protected@file@percent }
+\newlabel{sec:proposed_eval}{{VII}{7}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Proposed experimental comparison groups}}{7}{}\protected@file@percent }
+\newlabel{tab:comparison_groups}{{IV}{7}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Discussion}{7}{}\protected@file@percent }
+\newlabel{sec:discussion}{{VIII}{7}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VIII-A}}Parameter Efficiency vs. Computational Throughput}{7}{}\protected@file@percent }
+\bibstyle{IEEEtran}
+\bibdata{references}
+\bibcite{devlin2019bert}{1}
+\bibcite{liu2019roberta}{2}
+\bibcite{goodfellow2016dl}{3}
+\bibcite{hu2022lora}{4}
+\bibcite{chen2024dora}{5}
+\bibcite{socher2013recursive}{6}
+\bibcite{wang2018glue}{7}
+\bibcite{loshchilov2019adamw}{8}
+\bibcite{liu2024dora}{9}
+\bibcite{zhang2023adalora}{10}
+\bibcite{valipour2023dylora}{11}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VIII-B}}Efficacy of Dynamic Rank Allocation}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IX}Limitations and Future Work}{8}{}\protected@file@percent }
+\newlabel{sec:limitations}{{IX}{8}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IX-A}}Limitations}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IX-B}}Future Work}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {X}Conclusion}{8}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{X}{8}{}{}{}}
+\@writefile{toc}{\contentsline {section}{References}{8}{}\protected@file@percent }
+\gdef \@abspage@last{8}
