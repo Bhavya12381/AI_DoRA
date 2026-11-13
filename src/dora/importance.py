@@ -1,29 +1,23 @@
 import torch
-
 from .layer import AdaptiveRankLinear
+
 
 def component_importance(
     layer: AdaptiveRankLinear,
     eps: float = 1e-12,
 ):
     """
-    Calculate the relative importance of every rank component.
+    Calculate the relative Frobenius-norm importance of every rank component (Eq. 7).
 
     For component i:
-
         Delta W_i = c_i * b_i * a_i
 
     Its importance is:
-
-        score_i =
-            ||Delta W_i||_F
-            -----------------
-            ||Delta W||_F + eps
+        score_i = ||Delta W_i||_F / (||Delta W||_F + eps)
 
     Returns:
         Tensor with shape [rank].
     """
-
     components = layer.component_matrices()
 
     component_norms = torch.linalg.matrix_norm(
@@ -46,68 +40,72 @@ def component_importance(
     return scores
 
 
-def all_layer_importance(
-    model,
+def magnitude_importance(
+    layer: AdaptiveRankLinear,
+    eps: float = 1e-12,
 ):
     """
-    Calculate importance scores for every
-    AdaptiveRankLinear layer in a model.
+    Calculate unnormalized magnitude-based importance (Frobenius norm of Delta W_i).
+    Used for ablation comparisons against relative Frobenius scoring.
+    """
+    components = layer.component_matrices()
+    component_norms = torch.linalg.matrix_norm(
+        components,
+        ord="fro",
+        dim=(-2, -1),
+    )
+    return component_norms
+
+
+def random_importance(
+    layer: AdaptiveRankLinear,
+    generator: torch.Generator = None,
+):
+    """
+    Assign uniform random importance scores in [0, 1].
+    Used for random pruning ablation under the exact same rank budget.
+    """
+    return torch.rand(layer.rank, device=layer.c.device, generator=generator)
+
+
+def compute_component_importance(
+    layer: AdaptiveRankLinear,
+    importance_type: str = "frobenius",
+    eps: float = 1e-12,
+    generator: torch.Generator = None,
+):
+    """
+    Dispatch function for component importance calculation.
+    """
+    if importance_type == "frobenius":
+        return component_importance(layer, eps=eps)
+    elif importance_type == "magnitude":
+        return magnitude_importance(layer, eps=eps)
+    elif importance_type == "random":
+        return random_importance(layer, generator=generator)
+    else:
+        raise ValueError(
+            f"Unknown importance_type '{importance_type}'. Supported: 'frobenius', 'magnitude', 'random'"
+        )
+
+
+def all_layer_importance(
+    model,
+    importance_type: str = "frobenius",
+    eps: float = 1e-12,
+):
+    """
+    Calculate importance scores for every AdaptiveRankLinear layer in a model.
 
     Returns:
-        Dictionary:
-
-            {
-                "layer_name": tensor([...]),
-                ...
-            }
+        Dictionary: {"layer_name": tensor([...]), ...}
     """
-
     scores = {}
-
     for name, module in model.named_modules():
-
-        if isinstance(
-            module,
-            AdaptiveRankLinear,
-        ):
-
-            scores[name] = component_importance(
-                module
+        if isinstance(module, AdaptiveRankLinear):
+            scores[name] = compute_component_importance(
+                module,
+                importance_type=importance_type,
+                eps=eps,
             )
-
     return scores
-if __name__ == "__main__":
-
-    import torch
-    from torch import nn
-
-    torch.manual_seed(0)
-
-    base = nn.Linear(
-        4,
-        3,
-    )
-
-    layer = AdaptiveRankLinear(
-        base,
-        rank=4,
-    )
-
-    scores = component_importance(
-        layer
-    )
-
-    print("Importance scores:")
-    print(scores)
-
-    print()
-    print("Component matrices:")
-    print(
-        layer.component_matrices().shape
-    )
-
-    print()
-    print("Merged update:")
-    print(
-        layer.merged_update().shape
-    )

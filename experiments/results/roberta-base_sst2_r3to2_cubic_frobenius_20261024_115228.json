@@ -1,0 +1,637 @@
+{
+  "experiment_id": "roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228",
+  "timestamp": "20261024_115228",
+  "model_name": "roberta-base",
+  "dataset_name": "sst2",
+  "initial_rank": 3,
+  "final_rank": 2,
+  "initial_total_rank": 216,
+  "final_active_rank": 144,
+  "rank_reduction_percent": 33.333333333333336,
+  "train_accuracy": 0.5,
+  "eval_accuracy": 0.46,
+  "eval_macro_f1": 0.3150684931506849,
+  "eval_weighted_f1": 0.2898630136986301,
+  "training_duration_seconds": 11.28,
+  "total_steps": 7,
+  "num_epochs": 1,
+  "batch_size": 16,
+  "learning_rate": 0.0008,
+  "alpha": 2.0,
+  "dem_coefficient": 0.5,
+  "ema_decay": 0.9,
+  "schedule_type": "cubic",
+  "importance_type": "frobenius",
+  "use_ema": true,
+  "is_smoke_test": true,
+  "train_samples": 100,
+  "eval_samples": 50,
+  "device": "cpu",
+  "param_info": {
+    "total_parameters": 125145050,
+    "trainable_parameters": 497880,
+    "adapter_parameters": 497880,
+    "classifier_head_parameters": 0,
+    "train_classifier_head": false,
+    "adapted_layer_count": 72,
+    "initial_rank": 3,
+    "initial_total_rank": 216
+  },
+  "compact_summary": {
+    "adapted_layer_count": 72,
+    "total_adapter_parameters_before": 497880,
+    "total_adapter_parameters_after": 331920,
+    "adapter_parameter_reduction": 165960,
+    "adapter_parameter_reduction_percent": 33.333333333333336,
+    "layer_details": {
+      "roberta.encoder.layer.0.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.0.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.0.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.0.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.0.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.0.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.1.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.1.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.1.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.1.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.1.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 11523,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.1.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.2.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.2.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.2.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.2.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.2.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.2.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.3.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.3.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.3.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.3.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.3.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 11523,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.3.output.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 3841,
+        "param_reduction": 7682
+      },
+      "roberta.encoder.layer.4.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.4.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.4.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.4.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.4.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 3841,
+        "param_reduction": 7682
+      },
+      "roberta.encoder.layer.4.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.5.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.5.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.5.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.5.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.5.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.5.output.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 3841,
+        "param_reduction": 7682
+      },
+      "roberta.encoder.layer.6.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.6.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.6.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.6.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.6.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.6.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.7.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.7.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.7.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.7.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.7.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.7.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.8.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.8.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.8.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.8.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.8.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.8.output.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 11523,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.9.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.9.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.9.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.9.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.9.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 3841,
+        "param_reduction": 7682
+      },
+      "roberta.encoder.layer.9.output.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 11523,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.10.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.10.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.10.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.10.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.10.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 3841,
+        "param_reduction": 7682
+      },
+      "roberta.encoder.layer.10.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      },
+      "roberta.encoder.layer.11.attention.self.query": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.11.attention.self.key": {
+        "original_rank": 3,
+        "active_rank": 1,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 1537,
+        "param_reduction": 3074
+      },
+      "roberta.encoder.layer.11.attention.self.value": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 3074,
+        "param_reduction": 1537
+      },
+      "roberta.encoder.layer.11.attention.output.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 4611,
+        "allocated_params_after": 4611,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.11.intermediate.dense": {
+        "original_rank": 3,
+        "active_rank": 3,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 11523,
+        "param_reduction": 0
+      },
+      "roberta.encoder.layer.11.output.dense": {
+        "original_rank": 3,
+        "active_rank": 2,
+        "allocated_params_before": 11523,
+        "allocated_params_after": 7682,
+        "param_reduction": 3841
+      }
+    },
+    "numerical_equivalence_verified": true,
+    "max_abs_diff": 7.450580596923828e-08
+  },
+  "benchmark_records": [
+    {
+      "variant": "Gated DoRA (Soft Pruned)",
+      "total_model_size_mb": 477.398,
+      "adapter_size_mb": 1.899,
+      "batch_size": 1,
+      "seq_length": 128,
+      "warmup_runs": 10,
+      "benchmark_runs": 30,
+      "device": "cpu",
+      "mean_latency_ms": 98.4978,
+      "std_latency_ms": 6.0823,
+      "median_latency_ms": 97.728,
+      "p90_latency_ms": 100.5827,
+      "p95_latency_ms": 101.5431,
+      "p99_latency_ms": 121.2321,
+      "min_latency_ms": 92.6797,
+      "max_latency_ms": 129.1503,
+      "throughput_samples_per_sec": 10.15,
+      "peak_gpu_memory_mb": 0.0
+    },
+    {
+      "variant": "Gated DoRA (Soft Pruned)",
+      "total_model_size_mb": 477.398,
+      "adapter_size_mb": 1.899,
+      "batch_size": 16,
+      "seq_length": 128,
+      "warmup_runs": 10,
+      "benchmark_runs": 30,
+      "device": "cpu",
+      "mean_latency_ms": 1497.423,
+      "std_latency_ms": 42.2212,
+      "median_latency_ms": 1480.399,
+      "p90_latency_ms": 1573.3566,
+      "p95_latency_ms": 1574.6913,
+      "p99_latency_ms": 1581.5835,
+      "min_latency_ms": 1446.3825,
+      "max_latency_ms": 1584.3661,
+      "throughput_samples_per_sec": 10.69,
+      "peak_gpu_memory_mb": 0.0
+    },
+    {
+      "variant": "Compact DoRA (Physically Pruned)",
+      "total_model_size_mb": 476.765,
+      "adapter_size_mb": 1.266,
+      "batch_size": 1,
+      "seq_length": 128,
+      "warmup_runs": 10,
+      "benchmark_runs": 30,
+      "device": "cpu",
+      "mean_latency_ms": 109.5244,
+      "std_latency_ms": 3.2659,
+      "median_latency_ms": 109.204,
+      "p90_latency_ms": 113.7939,
+      "p95_latency_ms": 115.5454,
+      "p99_latency_ms": 117.0938,
+      "min_latency_ms": 102.9885,
+      "max_latency_ms": 117.2358,
+      "throughput_samples_per_sec": 9.13,
+      "peak_gpu_memory_mb": 0.0
+    },
+    {
+      "variant": "Compact DoRA (Physically Pruned)",
+      "total_model_size_mb": 476.765,
+      "adapter_size_mb": 1.266,
+      "batch_size": 16,
+      "seq_length": 128,
+      "warmup_runs": 10,
+      "benchmark_runs": 30,
+      "device": "cpu",
+      "mean_latency_ms": 1628.9461,
+      "std_latency_ms": 35.3357,
+      "median_latency_ms": 1619.0702,
+      "p90_latency_ms": 1667.6795,
+      "p95_latency_ms": 1690.6582,
+      "p99_latency_ms": 1718.7652,
+      "min_latency_ms": 1570.9835,
+      "max_latency_ms": 1725.1907,
+      "throughput_samples_per_sec": 9.82,
+      "peak_gpu_memory_mb": 0.0
+    }
+  ]
+}

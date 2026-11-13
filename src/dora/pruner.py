@@ -1,8 +1,8 @@
 import torch
 
-from .importance import component_importance
+from .importance import component_importance, compute_component_importance
 from .layer import AdaptiveRankLinear
-from .scheduler import CubicBudgetScheduler
+from .scheduler import CubicBudgetScheduler, create_budget_scheduler
 
 
 class DynamicRankPruner:
@@ -29,6 +29,9 @@ class DynamicRankPruner:
         start_fraction=0.15,
         end_fraction=0.50,
         prune_interval=20,
+        schedule_type="cubic",
+        importance_type="frobenius",
+        use_ema=True,
     ):
         if not 0.0 <= ema_decay < 1.0:
             raise ValueError(
@@ -43,8 +46,12 @@ class DynamicRankPruner:
         self.model = model
         self.ema_decay = ema_decay
         self.prune_interval = prune_interval
+        self.schedule_type = schedule_type
+        self.importance_type = importance_type
+        self.use_ema = use_ema
 
-        self.scheduler = CubicBudgetScheduler(
+        self.scheduler = create_budget_scheduler(
+            schedule_type=schedule_type,
             initial_rank=initial_rank,
             final_rank=final_rank,
             total_steps=total_steps,
@@ -98,23 +105,27 @@ class DynamicRankPruner:
         """
 
         for name, layer in self._adaptive_layers():
-            current = component_importance(
-                layer
+            current = compute_component_importance(
+                layer,
+                importance_type=self.importance_type,
             ).detach()
 
-            previous = self.ema_scores[name].to(
-                device=current.device,
-                dtype=current.dtype,
-            )
+            if not self.use_ema:
+                self.ema_scores[name] = current.detach().cpu()
+            else:
+                previous = self.ema_scores[name].to(
+                    device=current.device,
+                    dtype=current.dtype,
+                )
 
-            updated = (
-                self.ema_decay * previous
-                + (1.0 - self.ema_decay) * current
-            )
+                updated = (
+                    self.ema_decay * previous
+                    + (1.0 - self.ema_decay) * current
+                )
 
-            self.ema_scores[name] = (
-                updated.detach().cpu()
-            )
+                self.ema_scores[name] = (
+                    updated.detach().cpu()
+                )
 
     # ---------------------------------------------------------
     # Rank schedule
@@ -532,36 +543,6 @@ class DynamicRankPruner:
             }
 
         return self.prune(step)
-
-    # ---------------------------------------------------------
-    # Checkpointing
-    # ---------------------------------------------------------
-
-    def state_dict(self):
-        return {
-            "ema_scores": {
-                name: scores.clone()
-                for name, scores in self.ema_scores.items()
-            },
-            "final_mask": {
-                name: mask.clone()
-                for name, mask in self.final_mask.items()
-            },
-            "pruning_finished": self.pruning_finished,
-        }
-
-    def load_state_dict(self, state):
-        if "ema_scores" in state:
-            for name, scores in state["ema_scores"].items():
-                if name in self.ema_scores:
-                    self.ema_scores[name].copy_(scores)
-        
-        if "final_mask" in state:
-            for name, mask in state["final_mask"].items():
-                if name in self.final_mask:
-                    self.final_mask[name].copy_(mask)
-                    
-        self.pruning_finished = state.get("pruning_finished", False)
 
     # ---------------------------------------------------------
     # Inspection helpers

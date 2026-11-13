@@ -1,0 +1,5 @@
+experiment_id,variant,total_model_size_mb,adapter_size_mb,batch_size,seq_length,warmup_runs,benchmark_runs,device,mean_latency_ms,std_latency_ms,median_latency_ms,p90_latency_ms,p95_latency_ms,p99_latency_ms,min_latency_ms,max_latency_ms,throughput_samples_per_sec,peak_gpu_memory_mb
+roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228,Gated DoRA (Soft Pruned),477.398,1.899,1,128,10,30,cpu,98.4978,6.0823,97.728,100.5827,101.5431,121.2321,92.6797,129.1503,10.15,0.0
+roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228,Gated DoRA (Soft Pruned),477.398,1.899,16,128,10,30,cpu,1497.423,42.2212,1480.399,1573.3566,1574.6913,1581.5835,1446.3825,1584.3661,10.69,0.0
+roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228,Compact DoRA (Physically Pruned),476.765,1.266,1,128,10,30,cpu,109.5244,3.2659,109.204,113.7939,115.5454,117.0938,102.9885,117.2358,9.13,0.0
+roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228,Compact DoRA (Physically Pruned),476.765,1.266,16,128,10,30,cpu,1628.9461,35.3357,1619.0702,1667.6795,1690.6582,1718.7652,1570.9835,1725.1907,9.82,0.0

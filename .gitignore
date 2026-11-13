@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Large model and experiment checkpoints
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+checkpoints/
+experiments/checkpoints/
+experiments/logs/
+
+# Temporary / cache files
+*.tmp
+.cache/
+.pytest_cache/

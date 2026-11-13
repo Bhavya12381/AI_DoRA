@@ -1,0 +1,2 @@
+experiment_id,dataset_name,model_name,train_accuracy,eval_accuracy,eval_macro_f1,initial_total_rank,final_active_rank,is_smoke_test,device
+roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228,sst2,roberta-base,0.5,0.46,0.3150684931506849,216,144,True,cpu

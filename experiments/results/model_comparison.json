@@ -1,0 +1,14 @@
+[
+  {
+    "experiment_id": "roberta-base_sst2_r3to2_cubic_frobenius_20261024_115228",
+    "model_name": "roberta-base",
+    "dataset_name": "sst2",
+    "train_accuracy": 0.5,
+    "eval_accuracy": 0.46,
+    "eval_macro_f1": 0.3150684931506849,
+    "initial_total_rank": 216,
+    "final_active_rank": 144,
+    "training_duration_seconds": 11.28,
+    "is_smoke_test": true
+  }
+]
